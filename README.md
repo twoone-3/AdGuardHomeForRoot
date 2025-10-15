@@ -13,7 +13,7 @@
 
 ## 简介
 
-- 本模块是一个在安卓设备上运行的 AdGuardHome 模块，提供了一个本地 DNS 服务器，能够屏蔽广告、恶意软件和跟踪器。
+- 本模块是一个在安卓设备上运行 [AdGuardHome](https://github.com/AdguardTeam/AdGuardHome) 的模块，提供了一个本地 DNS 服务器，能够屏蔽广告、恶意软件和跟踪器。
 - 它可以作为一个本地广告拦截模块使用，也可以通过调整配置文件，转变为一个独立运行的 AdGuardHome 工具。
 - 该模块支持 Magisk、KernelSU 和 APatch 等多种安装方式，适用于大多数 Android 设备。
 - 该模块的设计初衷是为了提供一个轻量级的广告拦截解决方案，避免了使用 VPN 的复杂性和性能损失。

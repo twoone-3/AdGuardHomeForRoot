@@ -13,7 +13,7 @@ Follow our channel for the latest news, or join our group for discussion!
 
 ## Introduction
 
-- This module is an AdGuardHome module running on Android devices, providing a local DNS server that blocks ads, malware, and trackers.
+- This module is a module that runs [AdGuardHome](https://github.com/AdguardTeam/AdGuardHome) on Android devices, providing a local DNS server that can block ads, malware, and trackers.
 - It can be used as a local ad-blocking module or transformed into a standalone AdGuardHome tool by adjusting the configuration file.
 - The module supports multiple installation methods, including Magisk, KernelSU, and APatch, making it compatible with most Android devices.
 - The design of this module aims to provide a lightweight ad-blocking solution, avoiding the complexity and performance loss associated with using VPNs.

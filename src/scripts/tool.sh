@@ -19,7 +19,7 @@ start_adguardhome() {
   fi
 
   # run binary
-  busybox setuidgid "$adg_user:$adg_group" "$BIN_DIR/AdGuardHome" --no-check-update >"$AGH_DIR/bin.log" 2>&1 &
+  busybox setuidgid "$adg_user:$adg_group" "$BIN_DIR/AdGuardHome" >"$AGH_DIR/bin.log" 2>&1 &
   adg_pid=$!
 
   # check if AdGuardHome started successfully

@@ -1,1 +1,5 @@
 cache/
+tmp
+.idea
+src/webroot
+AdGuardHomeForRoot_*.zip

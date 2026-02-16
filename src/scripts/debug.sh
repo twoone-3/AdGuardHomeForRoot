@@ -17,7 +17,7 @@ LOG="$AGH_DIR/debug.log"
 
   echo "== AdGuardHome Version =="
   if [ -f "$AGH_DIR/bin/AdGuardHome" ]; then
-    "$AGH_DIR/bin/AdGuardHome" version
+    "$AGH_DIR/bin/AdGuardHome" --version
   else
     echo "AdGuardHome binary not found"
   fi

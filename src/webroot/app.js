@@ -1,9 +1,132 @@
 /**
  * AdGuardHome for Root - WebUI Application
- * 
- * KernelSU API: ksu.exec(cmd) returns stdout string synchronously
- * KernelSU API: ksu.toast(msg) shows a toast
+ * 内嵌中英文翻译，支持切换
  */
+
+// ==================== 语言数据（内嵌） ====================
+var langData = {
+  zh: {
+    // 状态
+    running: '运行中',
+    stopped: '已停止',
+    loading: '加载中...',
+    noapi: '无 API',
+    // 统计卡片
+    stats_title: '查询日志统计',
+    stat_queries: 'DNS查询',
+    stat_blocked: '规则拦截',
+    stat_time: '处理耗时',
+    // 按钮
+    btn_start: '启动',
+    btn_stop: '停止',
+    btn_restart: '重启',
+    btn_debug: '调试信息',
+    btn_save: '保存设置',
+    btn_webpanel: 'AdGuardHome 网页管理面板',
+    // 设置页面
+    settings_title: '设置',
+    iptables_title: '启用 iptables',
+    iptables_desc: '通过 iptables 重定向 DNS 请求',
+    ipv6_title: '阻止 IPv6 DNS',
+    ipv6_desc: '阻止 IPv6 的 DNS 请求',
+    redir_port: '重定向端口（必须与 AdGuardHome DNS 端口一致）',
+    run_user: '运行用户',
+    run_group: '运行用户组',
+    bypass_dest: '绕过目标（空格分隔）',
+    bypass_src: '绕过来源（空格分隔）',
+    // Toast 消息
+    save_ok: '设置已保存成功',
+    save_fail: '保存设置失败',
+    start_ok: '启动成功',
+    stop_ok: '停止成功',
+    restart_ok: '重启成功',
+    start_fail: '启动失败',
+    stop_fail: '停止失败',
+    restart_fail: '重启失败',
+    debug_ok: '调试信息已收集至 /data/adb/agh/debug.log',
+    // 日志
+    log_empty: '暂无日志',
+    // 页脚
+    mit: 'MIT 协议',
+    // 标签栏
+    tab_main: '主页',
+    tab_settings: '设置',
+    // 帮助弹窗
+    help_title: '指标说明',
+    help_dns: 'DNS查询',
+    help_dns_desc: 'AdGuard Home 核心处理的 DNS 查询总数。',
+    help_blocked: '规则拦截',
+    help_blocked_desc: '被过滤规则拦截的 DNS 请求数量。',
+    help_time: '处理耗时',
+    help_time_desc: '处理每个 DNS 请求的平均耗时（秒）。',
+    help_note: '数据通过 AdGuard Home OpenAPI 实时获取，统计周期由核心配置决定。',
+    help_close: '关闭',
+    // 语言切换
+    language_title: '语言',
+    language_desc: '选择界面显示语言',
+    // 认证
+    auth_hint: '认证失败，请输入 AdGuardHome Web UI 账号密码',
+    username: '用户名',
+    password: '密码',
+    confirm: '确认'
+  },
+  en: {
+    running: 'Running',
+    stopped: 'Stopped',
+    loading: 'Loading...',
+    noapi: 'No API',
+    stats_title: 'Query Log Statistics',
+    stat_queries: 'DNS queries',
+    stat_blocked: 'Blocked',
+    stat_time: 'Avg time',
+    btn_start: 'Start',
+    btn_stop: 'Stop',
+    btn_restart: 'Restart',
+    btn_debug: 'Debug Info',
+    btn_save: 'Save Settings',
+    btn_webpanel: 'AdGuardHome Web Panel',
+    settings_title: 'Settings',
+    iptables_title: 'Enable Iptables',
+    iptables_desc: 'Redirect DNS requests via iptables',
+    ipv6_title: 'Block IPv6 DNS',
+    ipv6_desc: 'Block DNS requests over IPv6',
+    redir_port: 'Redirect Port (must match AdGuardHome DNS port)',
+    run_user: 'Run User',
+    run_group: 'Run User Group',
+    bypass_dest: 'Bypass Destinations (space-separated)',
+    bypass_src: 'Bypass Sources (space-separated)',
+    save_ok: 'Settings saved successfully',
+    save_fail: 'Failed to save settings',
+    start_ok: 'Start successful',
+    stop_ok: 'Stop successful',
+    restart_ok: 'Restart successful',
+    start_fail: 'Start failed',
+    stop_fail: 'Stop failed',
+    restart_fail: 'Restart failed',
+    debug_ok: 'Debug info collected to /data/adb/agh/debug.log',
+    log_empty: 'No log entries',
+    mit: 'MIT License',
+    tab_main: 'Main',
+    tab_settings: 'Settings',
+    help_title: 'Statistics Help',
+    help_dns: 'DNS Queries',
+    help_dns_desc: 'Total number of DNS queries processed by AdGuard Home.',
+    help_blocked: 'Blocked',
+    help_blocked_desc: 'Number of DNS requests blocked by filtering rules.',
+    help_time: 'Processing Time',
+    help_time_desc: 'Average processing time per DNS request (seconds).',
+    help_note: 'Data is obtained via AdGuard Home OpenAPI, and the statistical period is determined by the core configuration.',
+    help_close: 'Close',
+    language_title: 'Language',
+    language_desc: 'Select interface language',
+    auth_hint: 'Authentication failed, please enter AdGuardHome Web UI credentials',
+    username: 'Username',
+    password: 'Password',
+    confirm: 'Confirm'
+  }
+};
+
+var curLang = localStorage.getItem('agh_lang') || 'zh';
 
 // ==================== Module API Layer ====================
 var ModuleAPI = {
@@ -21,11 +144,6 @@ var ModuleAPI = {
     return this._api !== null;
   },
 
-  /**
-   * Execute shell command SYNCHRONOUSLY.
-   * ksu.exec(cmd) returns stdout string directly.
-   * Returns { errno, stdout }
-   */
   exec: function(command) {
     if (!this._api) {
       return { errno: -1, stdout: '' };
@@ -100,7 +218,6 @@ function switchTab(index) {
   container.classList.remove('no-transition');
   container.style.transform = 'translateX(' + (-index * 50) + '%)';
 
-  // Update floating tab active state
   var tabs = document.querySelectorAll('.floating-tab-item');
   for (var i = 0; i < tabs.length; i++) {
     if (i === index) {
@@ -110,7 +227,6 @@ function switchTab(index) {
     }
   }
 
-  // Always show floating tab when switching pages
   var floatingTab = document.getElementById('floatingTab');
   if (floatingTab) {
     floatingTab.classList.remove('tab-hidden');
@@ -201,6 +317,28 @@ function switchTab(index) {
   });
 })();
 
+// ==================== 应用语言（更新所有带 data-i18n 的元素） ====================
+function applyLanguage() {
+  var l = langData[curLang];
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.getAttribute('data-i18n');
+    if (l[key] !== undefined) {
+      el.innerText = l[key];
+    }
+  });
+  // 更新状态栏文字（特殊处理，因为状态动态变化）
+  var statusEl = document.getElementById('statusText');
+  if (statusEl) {
+    var isRunningNow = document.getElementById('statusBadge').classList.contains('running');
+    statusEl.innerText = isRunningNow ? l.running : l.stopped;
+  }
+  // 高亮当前语言按钮
+  document.querySelectorAll('.lang-option-btn').forEach(function(btn) {
+    if (btn.dataset.lang === curLang) btn.classList.add('active');
+    else btn.classList.remove('active');
+  });
+}
+
 // ==================== Status Check ====================
 function checkStatus() {
   var badge = document.getElementById('statusBadge');
@@ -221,7 +359,7 @@ function checkStatus() {
 
   isRunning = running;
   badge.className = 'status-badge ' + (running ? 'running' : 'stopped');
-  statusText.textContent = running ? 'Running' : 'Stopped';
+  statusText.textContent = running ? langData[curLang].running : langData[curLang].stopped;
 
   pidBadge.textContent = 'PID: ' + pid;
 
@@ -298,9 +436,9 @@ function saveSettings() {
   if (result.errno === 0) {
     settingsChanged = false;
     document.getElementById('btnSaveSettings').disabled = true;
-    showToast('Settings saved successfully', 'success');
+    showToast(langData[curLang].save_ok, 'success');
   } else {
-    showToast('Failed to save settings', 'error');
+    showToast(langData[curLang].save_fail, 'error');
   }
 
   showLoading(false);
@@ -315,7 +453,7 @@ function loadLog() {
     var raw = (result.stdout || '').trim();
     var lines = raw.split('::NL::').filter(function(l) { return l !== ''; });
     var content = lines.join('\n');
-    logViewer.textContent = content || 'No log entries';
+    logViewer.textContent = content || langData[curLang].log_empty;
     logViewer.scrollTop = logViewer.scrollHeight;
   }
 }
@@ -432,10 +570,11 @@ function controlAdGuard(action) {
   var result = ModuleAPI.exec(cmd);
 
   if (result.errno === 0) {
-    var label = action.charAt(0).toUpperCase() + action.slice(1);
-    showToast(label + ' successful', 'success');
+    var okKey = action + '_ok';
+    showToast(langData[curLang][okKey], 'success');
   } else {
-    showToast(action + ' failed', 'error');
+    var failKey = action + '_fail';
+    showToast(langData[curLang][failKey], 'error');
   }
 
   setTimeout(function() {
@@ -455,7 +594,7 @@ function openAdGuardHome() {
 function collectDebugInfo() {
   showLoading(true);
   ModuleAPI.exec(SCRIPT_DIR + '/debug.sh 2>/dev/null');
-  showToast('Debug info collected to ' + AGH_DIR + '/debug.log', 'success');
+  showToast(langData[curLang].debug_ok, 'success');
   showLoading(false);
 }
 
@@ -507,7 +646,7 @@ function init() {
   if (!ModuleAPI.isAvailable()) {
     document.getElementById('noApiWarning').style.display = 'block';
     document.getElementById('statusBadge').className = 'status-badge stopped';
-    document.getElementById('statusText').textContent = 'No API';
+    document.getElementById('statusText').textContent = langData[curLang].noapi;
     return;
   }
 
@@ -518,6 +657,17 @@ function init() {
   loadLog();
   loadStats();
   setupScrollHideTab();
+
+  // 绑定语言切换按钮
+  document.querySelectorAll('.lang-option-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      curLang = this.dataset.lang;
+      localStorage.setItem('agh_lang', curLang);
+      applyLanguage();
+      checkStatus(); // 刷新状态文本
+    });
+  });
+  applyLanguage();
 
   switchTab(0);
 }

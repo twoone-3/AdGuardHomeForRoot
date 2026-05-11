@@ -1,6 +1,16 @@
 . /data/adb/agh/settings.conf
 . /data/adb/agh/scripts/base.sh
 
+move_to_system_cgroup() {
+  echo $$ > /sys/fs/cgroup/cgroup.procs 2>/dev/null
+  [ -f /dev/memcg/system/cgroup.procs ] && echo $$ > /dev/memcg/system/cgroup.procs 2>/dev/null
+  [ -f /dev/cpuctl/system/cgroup.procs ] && echo $$ > /dev/cpuctl/system/cgroup.procs 2>/dev/null
+  [ -f /dev/cpuset/system-background/cgroup.procs ] && echo $$ > /dev/cpuset/system-background/cgroup.procs 2>/dev/null
+  [ -f /dev/blkio/cgroup.procs ] && echo $$ > /dev/blkio/cgroup.procs 2>/dev/null
+}
+
+move_to_system_cgroup
+
 start_adguardhome() {
   # check if AdGuardHome is already running
   if [ -f "$PID_FILE" ] && ps | grep -w "$adg_pid" | grep -q "AdGuardHome"; then

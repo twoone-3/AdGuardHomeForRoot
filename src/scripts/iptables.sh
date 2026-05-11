@@ -5,9 +5,22 @@ iptables_w="iptables -w 64"
 ip6tables_w="ip6tables -w 64"
 
 check_ipv6_nat_support() {
-  if $ip6tables_w -t nat -L >/dev/null 2>&1; then
+  if ! $ip6tables_w -t nat -L >/dev/null 2>&1; then
+    log "IPv6 NAT: 不支持" "IPv6 NAT: not supported"
+    return 1
+  fi
+
+  local redirect_ok=false
+  if $ip6tables_w -t nat -A PREROUTING -p tcp --dport 65534 -j REDIRECT --to-port 65534 >/dev/null 2>&1; then
+    redirect_ok=true
+    $ip6tables_w -t nat -D PREROUTING -p tcp --dport 65534 -j REDIRECT --to-port 65534 >/dev/null 2>&1
+  fi
+
+  if $redirect_ok; then
+    log "IPv6 NAT: 支持（REDIRECT）" "IPv6 NAT: supported (REDIRECT)"
     return 0
   else
+    log "IPv6 NAT: 不支持" "IPv6 NAT: not supported"
     return 1
   fi
 }

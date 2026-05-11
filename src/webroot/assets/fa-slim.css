@@ -1,0 +1,26 @@
+@font-face{font-family:"Font Awesome 6 Free";font-style:normal;font-weight:900;font-display:block;src:url(./fa-solid-900.woff2) format("woff2")}
+.fa,.fa-solid,.fas{-moz-osx-font-smoothing:grayscale;-webkit-font-smoothing:antialiased;display:inline-block;font-style:normal;font-variant:normal;line-height:1;text-rendering:auto;font-family:"Font Awesome 6 Free";font-weight:900}
+.fa-triangle-exclamation:before{content:"\f071"}
+.fa-arrow-up-right-from-square:before{content:"\f08e"}
+.fa-chevron-right:before{content:"\f054"}
+.fa-chart-bar:before{content:"\f080"}
+.fa-key:before{content:"\f084"}
+.fa-chart-line:before{content:"\f201"}
+.fa-ranking-star:before{content:"\e561"}
+.fa-filter:before{content:"\f0b0"}
+.fa-gamepad:before{content:"\f11b"}
+.fa-play:before{content:"\f04b"}
+.fa-stop:before{content:"\f04d"}
+.fa-rotate:before{content:"\f2f1"}
+.fa-bug:before{content:"\f188"}
+.fa-shield-halved:before{content:"\f3ed"}
+.fa-shield:before{content:"\f132"}
+.fa-clock:before{content:"\f017"}
+.fa-wrench:before{content:"\f0ad"}
+.fa-broom:before{content:"\f51a"}
+.fa-eraser:before{content:"\f12d"}
+.fa-terminal:before{content:"\f120"}
+.fa-scroll:before{content:"\f70e"}
+.fa-gear:before{content:"\f013"}
+.fa-sliders:before{content:"\f1de"}
+.fa-floppy-disk:before{content:"\f0c7"}

@@ -126,7 +126,7 @@ var langData = {
   }
 };
 
-var curLang = localStorage.getItem('agh_lang') || 'zh';
+var curLang;
 
 // ==================== Module API Layer ====================
 var ModuleAPI = {
@@ -649,6 +649,20 @@ function init() {
     document.getElementById('statusText').textContent = langData[curLang].noapi;
     return;
   }
+
+  // 首次打开时，如果 localStorage 中没有语言设置，则从模块安装时写入的文件读取默认语言
+if (!localStorage.getItem('agh_lang')) {
+  var result = ModuleAPI.exec('cat /data/adb/agh/webui_lang 2>/dev/null');
+  var lang = result.stdout.trim();
+  if (lang === 'zh' || lang === 'en') {
+    curLang = lang;
+  } else {
+    curLang = 'zh';
+  }
+  localStorage.setItem('agh_lang', curLang);
+} else {
+  curLang = localStorage.getItem('agh_lang');
+}
 
   loadSettings();
   checkStatus();

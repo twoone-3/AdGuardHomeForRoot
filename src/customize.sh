@@ -33,6 +33,12 @@ unzip -o "$ZIPFILE" "service.sh" -d "$MODPATH" >/dev/null 2>&1
 unzip -o "$ZIPFILE" "uninstall.sh" -d "$MODPATH" >/dev/null 2>&1
 unzip -o "$ZIPFILE" "webroot/*" -d "$MODPATH" >/dev/null 2>&1
 
+# 将选择的语言写入文件，供 WebUI 首次启动时使用
+WEBUI_LANG_FILE="$AGH_DIR/webui_lang"
+echo "$language" > "$WEBUI_LANG_FILE"
+chmod 644 "$WEBUI_LANG_FILE"
+info "- 📝 WebUI default language set to: $language" "- 📝 WebUI 默认语言设置为: $language"
+
 extract_keep_config() {
   info "- 🌈 Keeping old configuration files..." "- 🌈 保留原来的配置文件..."
   info "- 📜 Extracting script files..." "- 📜 正在解压脚本文件..."

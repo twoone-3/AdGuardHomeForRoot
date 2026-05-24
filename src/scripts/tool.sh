@@ -37,9 +37,15 @@ start_adguardhome() {
     echo "$adg_pid" >"$PID_FILE"
     # check if iptables is enabled
     if [ "$enable_iptables" = true ]; then
-      $SCRIPT_DIR/iptables.sh enable
-      log "🥰 started PID: $adg_pid iptables: enabled" "🥰 启动成功 PID: $adg_pid iptables 已启用"
-      update_description "🥰 Started PID: $adg_pid iptables: enabled" "🥰 启动成功 PID: $adg_pid iptables 已启用"
+      if $SCRIPT_DIR/iptables.sh enable; then
+        log "🥰 started PID: $adg_pid iptables: enabled" "🥰 启动成功 PID: $adg_pid iptables 已启用"
+        update_description "🥰 Started PID: $adg_pid iptables: enabled" "🥰 启动成功 PID: $adg_pid iptables 已启用"
+      else
+        log "😭 Error occurred applying iptables" "😭 应用 iptables 规则时出错"
+        update_description "😭 Error occurred applying iptables" "😭 应用 iptables 规则时出错"
+        $SCRIPT_DIR/iptables.sh disable
+        exit 1
+      fi
     else
       log "🥰 started PID: $adg_pid iptables: disabled" "🥰 启动成功 PID: $adg_pid iptables 已禁用"
       update_description "🥰 Started PID: $adg_pid iptables: disabled" "🥰 启动成功 PID: $adg_pid iptables 已禁用"

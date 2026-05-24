@@ -45,6 +45,43 @@ rm /data/adb/modules/AdGuardHome/disable
 
 ---
 
+## 故障排查 (Troubleshooting)
+
+如果模块运行不符合预期，你可以通过查看以下日志文件进行排查：
+
+### 日志文件说明
+
+1. **`/data/adb/agh/history.log` (模块运行日志)**
+   - **内容**：记录了模块的启动、停止、iptables 规则应用等操作的结果。
+   - **用途**：排查“为什么模块显示已启动但没效果”或“为什么模块启动失败”。
+
+2. **`/data/adb/agh/bin.log` (核心服务日志)**
+   - **内容**：AdGuardHome 二进制程序本身的输出，包括 Web 界面启动信息、DNS 引擎运行状态、证书加载错误等。
+   - **用途**：排查“Web 界面打不开”、“DNS 解析报错”等程序本身的问题。
+
+3. **`/data/adb/agh/bin.log.bak`**
+   - **内容**：上一次运行时的核心服务日志备份。
+
+### 使用 debug.sh 收集信息
+
+如果你遇到了难以解决的问题，可以运行模块自带的调试脚本：
+
+```shell
+sh /data/adb/agh/scripts/debug.sh
+```
+
+- 该脚本会自动收集系统版本、架构、进程状态、防火墙规则 (iptables)、网络接口信息以及上述日志的摘要。
+- 所有信息将汇总输出到 **`/data/adb/agh/debug.log`**。
+- 在反馈 Issue 时，提供此文件的内容能极大地帮助开发者定位问题。
+
+### 常见状态标识 (显示在 Magisk/KSU 描述中)
+
+- `🥰 Started...`: 模块及防火墙规则均已成功运行。
+- `❌ Stopped`: 模块已正常停止。
+- `😭 Error occurred...`: 启动过程中出现问题（如 AdGuardHome 闪退或防火墙应用失败），此时请检查 `history.log` 和 `bin.log`。
+
+---
+
 ## 与代理软件共存 (Coexistence with Proxy Software)
 
 代理软件主要分为两类：

@@ -51,18 +51,16 @@
     }
 
     async function refresh() {
-        // Combined command for speed
         const marker = "::SPLIT::";
         const cmd = `
             [ -f ${pidFile} ] && cat ${pidFile} || echo ""; echo "${marker}";
             cat ${settingsPath} 2>/dev/null; echo "${marker}";
             grep -m1 "address:" ${yamlPath} | sed 's/.*address: *//'; echo "${marker}";
-            /data/adb/agh/bin/AdGuardHome --version | sed 's/.*version //'
+            /data/adb/agh/bin/AdGuardHome --version | head -1 | sed 's/.*version //'
         `;
         const res = await exec(cmd);
         const parts = res.s.split(marker).map(p => p.trim());
         
-        // PID / Status
         const pid = parts[0];
         const isRunning = pid && /^\d+$/.test(pid);
         document.body.className = isRunning ? 'running' : 'stopped';
@@ -74,7 +72,6 @@
             elements.pidBadge.classList.add('hidden');
         }
 
-        // Settings (only on first load or if focus is lost to avoid overwriting user input)
         if (!window._loaded) {
             const conf = {};
             parts[1].split('\n').forEach(l => {
@@ -89,7 +86,6 @@
             window._loaded = true;
         }
 
-        // Web Address
         window._webAddr = parts[2] || "127.0.0.1:3000";
         elements.version.textContent = (parts[3] || "...");
     }
@@ -124,7 +120,6 @@
         window.open(`http://${addr}`, '_blank');
     };
 
-    // Tabs
     document.querySelectorAll('[data-tab]').forEach(b => {
         b.onclick = () => {
             document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
@@ -139,7 +134,26 @@
         elements.logContent.textContent = "读取中...";
         const path = logType === 'bin' ? binLogPath : historyLogPath;
         const res = await exec(`tail -n 100 ${path}`);
-        elements.logContent.textContent = res.s || "暂无日志";
+        if (!res.s) {
+            elements.logContent.textContent = "暂无日志";
+            return;
+        }
+
+        // Apply simple highlighting
+        const lines = res.s.split('\n').map(line => {
+            if (!line.trim()) return "";
+            // Highlight Timestamps
+            line = line.replace(/^(\d{4}[-/]\d{2}[-/]\d{2}\s\d{2}:\d{2}:\d{2}(\.\d+)?)/, '<span style="color:#888">$1</span>');
+            // Highlight Levels
+            line = line.replace(/\[(info|INFO|debug|DEBUG)\]/, '[<span style="color:#4CAF50">$1</span>]');
+            line = line.replace(/\[(warn|WARN|warning|WARNING)\]/, '[<span style="color:#FFC107">$1</span>]');
+            line = line.replace(/\[(error|ERROR|fatal|FATAL)\]/, '[<span style="color:#F44336">$1</span>]');
+            // Status icons in history log
+            line = line.replace(/(🟢|🔴|🧹|LOG)/g, '<span style="filter:drop-shadow(0 0 2px rgba(255,255,255,0.3))">$1</span>');
+            return `<div>${line}</div>`;
+        });
+
+        elements.logContent.innerHTML = lines.join('');
         elements.logContent.scrollTop = elements.logContent.scrollHeight;
     }
 
@@ -154,30 +168,16 @@
 
     $('btn-refresh-log').onclick = loadLog;
 
-    $('btn-clear-cache').onclick = async () => {
-        showToast("正在重启并清理...");
-        await exec(`${scriptTool} stop && ${scriptTool} start`);
-        refresh();
-    };
-
     $('btn-debug').onclick = async () => {
         showToast("正在生成...");
-        await exec(scriptDebug);
-        showToast("生成成功");
+        await exec(`${scriptDebug}`);
+        showToast(`已生成至: ${debugLogPath}`);
     };
 
     $('btn-open-debug').onclick = async () => {
-        elements.logContent.textContent = "读取调试日志中...";
-        const res = await exec(`tail -n 1000 ${debugLogPath} || echo "调试日志尚未生成，请先点击生成"`);
-        
-        // Switch to logs tab
-        document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
-        document.querySelector('[data-tab="logs"]').classList.add('active');
-        $('tab-logs').classList.add('active');
-        
-        elements.logContent.textContent = res.s || "日志为空";
-        elements.logContent.scrollTop = 0;
-        showToast("已加载调试日志");
+        // Use system action to open the file instead of internal viewer
+        await exec(`am start -a android.intent.action.VIEW -d "file://${debugLogPath}" -t "text/plain" || am start -a android.intent.action.VIEW -d "content://com.android.externalstorage.documents/document/primary%3A${debugLogPath.replace(/^\/data\/adb\//, 'adb/')}" -t "text/plain"`);
+        showToast("尝试调用系统程序打开...");
     };
 
     if (It) {

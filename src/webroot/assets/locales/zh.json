@@ -1,0 +1,44 @@
+{
+  "app.title": "AdGuardHome 配置",
+
+  "status.checking": "检测中...",
+  "status.running": "运行中",
+  "status.stopped": "已停止",
+
+  "button.start": "启动核心",
+  "button.stop": "停止核心",
+  "button.panel": "进入 AdGuardHome 管理面板",
+  "button.save": "保存并应用配置",
+
+  "tab.settings": "基本设置",
+  "tab.logs": "查看日志",
+  "tab.tools": "维护中心",
+
+  "settings.title": "流量重定向",
+  "settings.enable_iptables": "启用 iptables",
+  "settings.enable_iptables_desc": "自动在系统层面重定向 DNS 流量",
+  "settings.block_ipv6": "拦截 IPv6 DNS",
+  "settings.block_ipv6_desc": "防止 DNS 请求通过 IPv6 绕过过滤",
+  "settings.redir_port": "DNS 重定向端口",
+  "settings.user": "运行用户 (UID)",
+  "settings.group": "运行用户组 (GID)",
+
+  "logs.core": "核心日志",
+  "logs.history": "运行历史",
+  "logs.refresh": "刷新",
+  "logs.waiting": "等待加载中...",
+
+  "tools.title": "系统维护",
+  "tools.generate_debug": "生成调试日志",
+  "tools.open_debug": "本地打开日志",
+
+  "toast.starting": "正在启动...",
+  "toast.stopping": "正在停止...",
+  "toast.saved": "配置已保存!",
+  "toast.loading": "读取中...",
+  "toast.no_logs": "暂无日志",
+  "toast.generating": "正在生成...",
+  "toast.generated": "已生成至:",
+  "toast.opening_file": "尝试调用系统程序打开...",
+  "toast.open_manager": "请从模块管理器打开"
+}

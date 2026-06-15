@@ -1,0 +1,44 @@
+{
+  "app.title": "AdGuardHome Config",
+
+  "status.checking": "Checking...",
+  "status.running": "Running",
+  "status.stopped": "Stopped",
+
+  "button.start": "Start Core",
+  "button.stop": "Stop Core",
+  "button.panel": "Open AdGuardHome Panel",
+  "button.save": "Save & Apply Configuration",
+
+  "tab.settings": "Settings",
+  "tab.logs": "Logs",
+  "tab.tools": "Maintenance",
+
+  "settings.title": "Traffic Redirection",
+  "settings.enable_iptables": "Enable iptables",
+  "settings.enable_iptables_desc": "Automatically redirect DNS traffic at system level",
+  "settings.block_ipv6": "Block IPv6 DNS",
+  "settings.block_ipv6_desc": "Prevent DNS bypass via IPv6",
+  "settings.redir_port": "DNS Redirect Port",
+  "settings.user": "Runtime User (UID)",
+  "settings.group": "Runtime Group (GID)",
+
+  "logs.core": "Core Log",
+  "logs.history": "History",
+  "logs.refresh": "Refresh",
+  "logs.waiting": "Waiting for logs...",
+
+  "tools.title": "System Maintenance",
+  "tools.generate_debug": "Generate Debug Log",
+  "tools.open_debug": "Open Debug Log",
+
+  "toast.starting": "Starting...",
+  "toast.stopping": "Stopping...",
+  "toast.saved": "Configuration saved!",
+  "toast.loading": "Loading...",
+  "toast.no_logs": "No logs available",
+  "toast.generating": "Generating...",
+  "toast.generated": "Generated:",
+  "toast.opening_file": "Opening with system application...",
+  "toast.open_manager": "Please open from KernelSU/APatch Manager"
+}

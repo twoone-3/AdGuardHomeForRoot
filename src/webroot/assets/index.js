@@ -1,4 +1,4 @@
-(function() {
+(function () {
     let It = null, rr = 0;
     const ii = "/data/adb/agh";
     const settingsPath = ii + "/settings.conf";
@@ -26,6 +26,8 @@
     }
 
     const $ = id => document.getElementById(id);
+    const t = (key) => window.i18n?.t(key) || key;
+    let currentStatus = "checking";
     const elements = {
         statusText: $('status-text'),
         statusContainer: $('status-container'),
@@ -60,11 +62,12 @@
         `;
         const res = await exec(cmd);
         const parts = res.s.split(marker).map(p => p.trim());
-        
+
         const pid = parts[0];
         const isRunning = pid && /^\d+$/.test(pid);
         document.body.className = isRunning ? 'running' : 'stopped';
-        elements.statusText.textContent = isRunning ? "运行中" : "已停止";
+        currentStatus = isRunning ? "running" : "stopped";
+        elements.statusText.textContent = t(`status.${currentStatus}`);
         if (isRunning) {
             elements.pidBadge.textContent = "PID: " + pid;
             elements.pidBadge.classList.remove('hidden');
@@ -78,7 +81,7 @@
                 const kv = l.split('=');
                 if (kv.length === 2) conf[kv[0].trim()] = kv[1].trim();
             });
-            for(let k in elements.fields) {
+            for (let k in elements.fields) {
                 const el = elements.fields[k];
                 if (el.type === 'checkbox') el.checked = conf[k] === 'true';
                 else el.value = conf[k] || "";
@@ -91,13 +94,13 @@
     }
 
     $('btn-start').onclick = async () => {
-        showToast("正在启动...");
+        showToast(t("toast.starting"));
         await exec(`${scriptTool} start`);
         refresh();
     };
 
     $('btn-stop').onclick = async () => {
-        showToast("正在停止...");
+        showToast(t("toast.stopping"));
         await exec(`${scriptTool} stop`);
         refresh();
     };
@@ -110,7 +113,7 @@
             cmd += `sed -i "s/^${k}=.*/${k}=${v}/" ${settingsPath}; `;
         }
         await exec(cmd);
-        showToast("配置已保存");
+        showToast(t("toast.saved"));
     };
 
     elements.linkPanel.onclick = () => {
@@ -131,11 +134,11 @@
 
     let logType = 'bin';
     async function loadLog() {
-        elements.logContent.textContent = "读取中...";
+        elements.logContent.textContent = t("toast.loading");
         const path = logType === 'bin' ? binLogPath : historyLogPath;
         const res = await exec(`tail -n 100 ${path}`);
         if (!res.s) {
-            elements.logContent.textContent = "暂无日志";
+            elements.logContent.textContent = t("toast.no_logs");
             return;
         }
 
@@ -169,21 +172,31 @@
     $('btn-refresh-log').onclick = loadLog;
 
     $('btn-debug').onclick = async () => {
-        showToast("正在生成...");
+        showToast(t("toast.generating"));
         await exec(`${scriptDebug}`);
-        showToast(`已生成至: ${debugLogPath}`);
+        showToast(`${t("toast.generated")} ${debugLogPath}`);
     };
 
     $('btn-open-debug').onclick = async () => {
         // Use system action to open the file instead of internal viewer
         await exec(`am start -a android.intent.action.VIEW -d "file://${debugLogPath}" -t "text/plain" || am start -a android.intent.action.VIEW -d "content://com.android.externalstorage.documents/document/primary%3A${debugLogPath.replace(/^\/data\/adb\//, 'adb/')}" -t "text/plain"`);
-        showToast("尝试调用系统程序打开...");
+        showToast(t("toast.opening_file"));
     };
+
+    document.addEventListener("languageChanged", () => {
+        if (currentStatus === "running" || currentStatus === "stopped") {
+            elements.statusText.textContent = t(`status.${currentStatus}`);
+        }
+
+        if (elements.logContent.textContent === t("toast.no_logs")) {
+            elements.logContent.textContent = t("logs.waiting");
+        }
+    });
 
     if (It) {
         refresh();
         setInterval(refresh, 5000);
     } else {
-        elements.statusText.textContent = "请从模块管理器打开";
+        elements.statusText.textContent = t("toast.open_manager");
     }
 })();

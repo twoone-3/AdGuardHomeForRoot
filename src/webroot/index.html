@@ -1,120 +1,182 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AdGuardHome Config</title>
     <link rel="stylesheet" href="./assets/style.css">
-    <style>
-        body { overflow-y: auto; padding: 10px; font-family: -apple-system, system-ui, sans-serif; }
-        .card { background: var(--card); border: 1px solid var(--bdr); border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        h1, h2, h3 { margin-top: 0; margin-bottom: 12px; font-size: 1.1rem; font-weight: 700; color: var(--t1); }
-        .btn-row { display: flex; gap: 10px; margin-bottom: 12px; }
-        .btn { flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
-        .btn-primary { background: var(--ac); color: white; }
-        .btn-danger { background: #ff5252; color: white; }
-        .btn-secondary { background: var(--bdr2); color: var(--t1); }
-        .btn:active { transform: scale(0.98); opacity: 0.9; }
-        .field { margin-bottom: 12px; }
-        .field label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; color: var(--t2); text-transform: uppercase; letter-spacing: 0.5px; }
-        .input { width: 100%; padding: 10px; border: 1px solid var(--bdr); border-radius: 8px; background: var(--bg); color: var(--t1); font-size: 15px; outline: none; transition: border-color 0.2s; }
-        .input:focus { border-color: var(--ac); }
-        .status-line { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; padding: 10px 15px; background: var(--card); border-radius: 10px; border: 1px solid var(--bdr); }
-        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; position: relative; }
-        .running .dot { background: #4CAF50; }
-        .running .dot::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; background: #4CAF50; opacity: 0.4; animation: pulse 2s infinite; }
-        .stopped .dot { background: #f44336; }
-        @keyframes pulse { 0% { transform: scale(1); opacity: 0.4; } 100% { transform: scale(2); opacity: 0; } }
-        .tab-btn-row { display: flex; gap: 4px; padding: 4px; background: var(--bdr2); border-radius: 10px; margin-bottom: 15px; }
-        .tab-btn { flex: 1; padding: 8px; border: none; background: none; color: var(--t2); cursor: pointer; border-radius: 8px; font-weight: 600; font-size: 13px; transition: all 0.2s; }
-        .tab-btn.active { background: var(--card); color: var(--ac); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        #log-content { background: #1a1a1a; color: #ececec; padding: 15px; border-radius: 12px; font-family: "JetBrains Mono", "Ubuntu Mono", monospace; font-size: 11px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; height: 350px; overflow-y: auto; border: 1px solid #333; }
-        .hidden { display: none !important; }
-        .toast-wrap { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; }
-        .toast { background: #333; color: #fff; padding: 10px 20px; border-radius: 10px; margin-bottom: 8px; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); animation: slideUp 0.3s ease; }
-        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-    </style>
 </head>
+
 <body class="stopped">
+
     <div id="toast-container" class="toast-wrap"></div>
 
     <div class="status-line" id="status-container">
         <span class="dot"></span>
-        <span id="status-text" style="font-weight: 700; font-size: 14px;">检测中...</span>
-        <span id="pid-badge" class="hidden" style="font-family: monospace; font-size: 11px; padding: 1px 6px; background: var(--bdr2); border-radius: 4px; color: var(--t2);"></span>
-        <span style="flex:1"></span>
-        <span id="agh-version" style="font-family: monospace; font-size: 11px; color: var(--t3)">v...</span>
+
+        <span id="status-text" data-i18n="status.checking" class="status-text">
+            Checking...
+        </span>
+
+        <span id="pid-badge" class="hidden pid-badge">
+        </span>
+
+        <span class="spacer"></span>
+
+        <span id="agh-version" class="version-text">
+            v...
+        </span>
+
+        <select id="lang-switch" class="input lang-select-sm">
+            <option value="en">EN</option>
+            <option value="zh">ZH</option>
+        </select>
     </div>
 
     <div class="btn-row">
-        <button class="btn btn-primary" id="btn-start">启动核心</button>
-        <button class="btn btn-danger" id="btn-stop">停止核心</button>
+        <button class="btn btn-primary" id="btn-start" data-i18n="button.start">
+            Start Core
+        </button>
+
+        <button class="btn btn-danger" id="btn-stop" data-i18n="button.stop">
+            Stop Core
+        </button>
     </div>
 
-    <button class="btn btn-secondary" id="btn-link-panel" style="width:100%; margin-bottom: 15px; padding: 12px; border-radius: 10px;">
-        进入 AdGuardHome 管理面板
+    <button class="btn btn-secondary btn-full" id="btn-link-panel" data-i18n="button.panel">
+        Open AdGuardHome Panel
     </button>
 
     <div class="tab-btn-row">
-        <button class="tab-btn active" data-tab="settings">基本设置</button>
-        <button class="tab-btn" data-tab="logs">查看日志</button>
-        <button class="tab-btn" data-tab="tools">维护中心</button>
+        <button class="tab-btn active" data-tab="settings" data-i18n="tab.settings">
+            Settings
+        </button>
+
+        <button class="tab-btn" data-tab="logs" data-i18n="tab.logs">
+            Logs
+        </button>
+
+        <button class="tab-btn" data-tab="tools" data-i18n="tab.tools">
+            Maintenance
+        </button>
     </div>
 
     <div id="tab-settings" class="tab-content active">
+
         <div class="card">
-            <h3>流量重定向</h3>
-            <div class="setting-row" style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+
+            <h3 data-i18n="settings.title">
+                Traffic Redirection
+            </h3>
+
+            <div class="setting-row flex-between">
                 <div>
-                    <div style="font-weight: 600;">启用 iptables</div>
-                    <div style="font-size: 0.75rem; color: var(--t3)">自动在系统层面重定向 DNS 流量</div>
+                    <div data-i18n="settings.enable_iptables">
+                        Enable iptables
+                    </div>
+
+                    <div data-i18n="settings.enable_iptables_desc" class="desc">
+                        Automatically redirect DNS traffic at system level
+                    </div>
                 </div>
-                <input type="checkbox" id="conf-enable_iptables" style="width: 20px; height: 20px; accent-color: var(--ac);">
+
+                <input type="checkbox" id="conf-enable_iptables" class="checkbox">
             </div>
-            <div class="setting-row" style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+
+            <div class="setting-row flex-between">
                 <div>
-                    <div style="font-weight: 600;">拦截 IPv6 DNS</div>
-                    <div style="font-size: 0.75rem; color: var(--t3)">防止 DNS 请求通过 IPv6 绕过过滤</div>
+                    <div data-i18n="settings.block_ipv6">
+                        Block IPv6 DNS
+                    </div>
+
+                    <div data-i18n="settings.block_ipv6_desc" class="desc">
+                        Prevent DNS bypass via IPv6
+                    </div>
                 </div>
-                <input type="checkbox" id="conf-block_ipv6_dns" style="width: 20px; height: 20px; accent-color: var(--ac);">
+
+                <input type="checkbox" id="conf-block_ipv6_dns" class="checkbox">
             </div>
+
             <div class="field">
-                <label>DNS 重定向端口</label>
+                <label data-i18n="settings.redir_port">
+                    DNS Redirect Port
+                </label>
                 <input type="number" class="input" id="conf-redir_port" placeholder="5591">
             </div>
+
             <div class="field">
-                <label>运行用户 (UID)</label>
+                <label data-i18n="settings.user">
+                    Runtime User (UID)
+                </label>
                 <input type="text" class="input" id="conf-adg_user" placeholder="root">
             </div>
+
             <div class="field">
-                <label>运行用户组 (GID)</label>
+                <label data-i18n="settings.group">
+                    Runtime Group (GID)
+                </label>
                 <input type="text" class="input" id="conf-adg_group" placeholder="net_raw">
             </div>
-            <button class="btn btn-primary" id="btn-save" style="width:100%; margin-top: 5px;">保存并应用配置</button>
+
+            <button class="btn btn-primary btn-full" id="btn-save" data-i18n="button.save">
+                Save & Apply Configuration
+            </button>
+
         </div>
     </div>
 
     <div id="tab-logs" class="tab-content">
-        <div class="btn-row" style="gap: 5px; margin-bottom: 8px;">
-            <button class="btn btn-secondary active" style="font-size: 11px; padding: 6px;" data-log="bin">核心日志</button>
-            <button class="btn btn-secondary" style="font-size: 11px; padding: 6px;" data-log="module">运行历史</button>
-            <button class="btn btn-secondary" style="font-size: 11px; padding: 6px;" id="btn-refresh-log">刷新</button>
+
+        <div class="btn-row log-btn-row">
+
+            <button class="btn btn-secondary active btn-sm" data-log="bin" data-i18n="logs.core">
+                Core Log
+            </button>
+
+            <button class="btn btn-secondary btn-sm" data-log="module" data-i18n="logs.history">
+                History
+            </button>
+
+            <button class="btn btn-secondary btn-sm" id="btn-refresh-log" data-i18n="logs.refresh">
+                Refresh
+            </button>
+
         </div>
-        <div id="log-content">等待加载中...</div>
+
+        <div id="log-content" data-i18n="logs.waiting">
+            Waiting for logs...
+        </div>
+
     </div>
 
     <div id="tab-tools" class="tab-content">
+
         <div class="card">
-            <h3>系统维护</h3>
+
+            <h3 data-i18n="tools.title">
+                System Maintenance
+            </h3>
+
             <div class="btn-row">
-                <button class="btn btn-secondary" id="btn-debug">生成调试日志</button>
-                <button class="btn btn-secondary" id="btn-open-debug">本地打开日志</button>
+
+                <button class="btn btn-secondary" id="btn-debug" data-i18n="tools.generate_debug">
+                    Generate Debug Log
+                </button>
+
+                <button class="btn btn-secondary" id="btn-open-debug" data-i18n="tools.open_debug">
+                    Open Debug Log
+                </button>
+
             </div>
+
         </div>
+
     </div>
 
+    <script src="./assets/i18n.js"></script>
     <script src="./assets/index.js"></script>
+
 </body>
+
 </html>

@@ -38,8 +38,8 @@ start_adguardhome() {
     # check if iptables is enabled
     if [ "$enable_iptables" = true ]; then
       if $SCRIPT_DIR/iptables.sh enable; then
-        log "🟢 [PID: $adg_pid] AdGuardHome is running (iptables: enabled)" "🟢 [PID: $adg_pid] AdGuardHome 运行中 (iptables: 已启用)"
-        update_description "🟢 [PID: $adg_pid] Running (iptables: ON)" "🟢 [PID: $adg_pid] 运行中 (iptables: 开启)"
+        log "🟢 AdGuardHome is running [PID: $adg_pid] (iptables: enabled)" "🟢 AdGuardHome 运行中 [PID: $adg_pid] (iptables: 已启用)"
+        update_description "🟢 Running [PID: $adg_pid] (iptables: ON)" "🟢 运行中 [PID: $adg_pid] (iptables: 开启)"
       else
         log "😭 Error occurred applying iptables" "😭 应用 iptables 规则时出错"
         update_description "🔴 Error applying iptables" "🔴 应用 iptables 出错"
@@ -47,8 +47,8 @@ start_adguardhome() {
         exit 1
       fi
     else
-      log "🟢 [PID: $adg_pid] AdGuardHome is running (iptables: disabled)" "🟢 [PID: $adg_pid] AdGuardHome 运行中 (iptables: 已禁用)"
-      update_description "🟢 [PID: $adg_pid] Running (iptables: OFF)" "🟢 [PID: $adg_pid] 运行中 (iptables: 关闭)"
+      log "🟢 AdGuardHome is running [PID: $adg_pid] (iptables: disabled)" "🟢 AdGuardHome 运行中 [PID: $adg_pid] (iptables: 已禁用)"
+      update_description "🟢 Running [PID: $adg_pid] (iptables: OFF)" "🟢 运行中 [PID: $adg_pid] (iptables: 关闭)"
     fi
   else
     log "😭 Error occurred, check logs for details" "😭 出现错误，请检查日志以获取详细信息"
@@ -63,7 +63,7 @@ stop_adguardhome() {
     pid=$(cat "$PID_FILE")
     kill $pid || kill -9 $pid
     rm "$PID_FILE"
-    log "🔴 AdGuardHome stopped (PID: $pid)" "🔴 AdGuardHome 已停止 (PID: $pid)"
+    log "🔴 AdGuardHome stopped [PID: $pid]" "🔴 AdGuardHome 已停止 [PID: $pid]"
   else
     pkill -f "AdGuardHome" || pkill -9 -f "AdGuardHome"
     log "🔴 AdGuardHome force stopped" "🔴 AdGuardHome 强制停止"

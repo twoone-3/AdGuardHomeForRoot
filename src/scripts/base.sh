@@ -24,10 +24,12 @@ function log() {
 function update_description() {
   local description
   [ "$language" = "en" ] && description="$1" || description="$2"
+  local module_id
+  module_id=$(grep "^id=" "$MOD_PATH/module.prop" | cut -d'=' -f2)
   if [ -x /data/adb/ksud ]; then
-    /data/adb/ksud module config set override.description $description && return 0
+    MODULE_ID="$module_id" /data/adb/ksud module config set override.description "$description" && return 0
   elif [ -x /data/adb/apd ]; then
-    /data/adb/apd module config set override.description $description && return 0
+    MODULE_ID="$module_id" /data/adb/apd module config set override.description "$description" && return 0
   fi
   
   sed -i "/^description=/c\description=$description" "$MOD_PATH/module.prop"

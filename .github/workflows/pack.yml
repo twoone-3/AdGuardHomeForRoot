@@ -22,56 +22,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Resolve archive URL
-        id: vars
+      - name: Pack module with pack.sh
         shell: bash
         run: |
           set -euo pipefail
-          case "${{ matrix.arch }}" in
-            arm64)
-              echo "archive_url=https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_arm64.tar.gz" >> "$GITHUB_OUTPUT"
-              ;;
-            armv7)
-              echo "archive_url=https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_armv7.tar.gz" >> "$GITHUB_OUTPUT"
-              ;;
-            *)
-              echo "Unsupported arch: ${{ matrix.arch }}" >&2
-              exit 1
-              ;;
-          esac
-
-      - name: Download release archive
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p cache
-          curl -fL "${{ steps.vars.outputs.archive_url }}" -o "cache/AdGuardHome_linux_${{ matrix.arch }}.tar.gz"
-
-      - name: Extract archive
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "cache/${{ matrix.arch }}"
-          tar -xzf "cache/AdGuardHome_linux_${{ matrix.arch }}.tar.gz" -C "cache/${{ matrix.arch }}"
-
-      - name: Stage package files
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -rf staging
-          mkdir -p staging
-          cp -a src/. staging/
-          cp "cache/${{ matrix.arch }}/AdGuardHome/AdGuardHome" "staging/bin/AdGuardHome"
-
-      - name: Create zip package
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -f "AdGuardHomeForRoot_${{ matrix.arch }}.zip"
-          (
-            cd staging
-            zip -r "../AdGuardHomeForRoot_${{ matrix.arch }}.zip" .
-          )
+          bash pack.sh "${{ matrix.arch }}"
+          cp "cache/AdGuardHomeForRoot_${{ matrix.arch }}.zip" .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

@@ -29,6 +29,7 @@
 - **服务控制**：支持一键“启动”、“停止”、“重启”核心服务。
 - **日志查看**：内置实时高亮的“核心日志”与“模块运行历史”查看器。
 - **维护工具**：支持一键导出调试日志，并可直接调用系统文件查看器打开生成的 `debug.log`。
+- **密码计算**：在“密码计算”分页中把明文密码转换为 `AdGuardHome.yaml` 所需的 bcrypt 哈希，可一键复制或直接写回配置文件（写入前自动备份为 `.bak`），无需在设备上安装 `htpasswd` 等工具。
 
 如果你更倾向于使用独立 App 管理 AdGuardHome 核心，可以尝试使用 [AdGuard Home Manager](https://github.com/JGeek00/adguard-home-manager) 应用。
 
@@ -176,6 +177,25 @@ dns:
 - 打开 **`/data/adb/agh/bin/AdGuardHome.yaml`** 文件。  
 - 修改 `bind_host` 的端口号为所需值。  
 - 保存文件后，重启模块以应用更改。
+
+### **Q: 忘记 AdGuardHome 后台密码怎么办？**
+
+**A:**
+
+- 打开模块 **Web UI**，切换到“密码计算”分页（KernelSU / APatch 管理器中的“管理”按钮）。
+- 填入用户名（默认 `root`）和新密码，点击“计算哈希”，页面会在本地算出 bcrypt 哈希。
+- 点击“写入配置”，再点击一次以确认，哈希会被写入 `/data/adb/agh/bin/AdGuardHome.yaml`，原文件会被备份为 `AdGuardHome.yaml.bak`。
+- 重启核心后使用新密码登录。
+
+当然，你也可以在“计算哈希”后点击“复制”，然后手动编辑 `/data/adb/agh/bin/AdGuardHome.yaml`，把 `users` 段中的 `password` 替换为该哈希：
+
+```yaml
+users:
+  - name: root
+    password: $2b$12$D3zeMIBFfzcQTqGqB.k7GOkMvqx1jgsrdiRCn2kwOHl.kNmmPfMom
+```
+
+需要注意：`password` 字段必须填入 bcrypt 哈希（形如 `$2b$12$` 开头的 60 个字符），不能直接填入明文密码；`cost` 越大越安全，计算也越慢，一般使用 10–12 即可。  
 
 ### **Q: 如何禁用模块的 iptables 转发规则？**  
 

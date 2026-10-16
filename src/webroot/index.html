@@ -60,6 +60,10 @@
         <button class="tab-btn" data-tab="tools" data-i18n="tab.tools">
             Maintenance
         </button>
+
+        <button class="tab-btn" data-tab="password" data-i18n="tab.password">
+            Password
+        </button>
     </div>
 
     <div id="tab-settings" class="tab-content active">
@@ -174,6 +178,84 @@
 
     </div>
 
+    <div id="tab-password" class="tab-content">
+
+        <div class="card">
+
+            <h3 data-i18n="password.title">
+                AdGuardHome Password
+            </h3>
+
+            <div class="desc" data-i18n="password.desc">
+                Generate the bcrypt hash for the users[].password field of AdGuardHome.yaml.
+            </div>
+
+            <div class="field">
+                <label data-i18n="password.user">
+                    Username
+                </label>
+                <input type="text" class="input" id="pw-user" placeholder="root" spellcheck="false" autocomplete="off">
+            </div>
+
+            <div class="field">
+                <label data-i18n="password.plain">
+                    New Password
+                </label>
+                <input type="password" class="input" id="pw-plain" data-i18n-placeholder="password.plain_ph" autocomplete="new-password" spellcheck="false">
+            </div>
+
+            <div class="field">
+                <label data-i18n="password.confirm">
+                    Confirm Password
+                </label>
+                <input type="password" class="input" id="pw-confirm" data-i18n-placeholder="password.confirm_ph" autocomplete="new-password" spellcheck="false">
+            </div>
+
+            <div class="field">
+                <label data-i18n="password.cost">
+                    Cost Factor
+                </label>
+                <input type="number" class="input" id="pw-cost" min="4" max="16" step="1" value="12">
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-primary" id="btn-pw-generate" data-i18n="password.generate">
+                    Generate Hash
+                </button>
+
+                <button class="btn btn-secondary" id="btn-pw-clear" data-i18n="password.clear">
+                    Clear
+                </button>
+            </div>
+
+            <div class="field">
+                <label data-i18n="password.result">
+                    bcrypt Hash
+                </label>
+                <textarea class="input textarea-mono" id="pw-result" rows="2" readonly spellcheck="false"></textarea>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-secondary" id="btn-pw-copy" data-i18n="password.copy">
+                    Copy
+                </button>
+
+                <button class="btn btn-secondary" id="btn-pw-apply" data-i18n="password.apply">
+                    Write to Config
+                </button>
+            </div>
+
+            <div class="desc" id="pw-status"></div>
+
+            <div class="desc" data-i18n="password.hint">
+                The hash is computed locally in this page.
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="./assets/bcrypt.js"></script>
     <script src="./assets/i18n.js"></script>
     <script src="./assets/index.js"></script>
 

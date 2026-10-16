@@ -317,6 +317,28 @@ h3 {
     font-size: 12px;
 }
 
+/* 密码计算页 */
+.textarea-mono {
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.45;
+    word-break: break-all;
+    resize: vertical;
+}
+
+.btn:disabled {
+    opacity: .6;
+    cursor: default;
+}
+
+.btn:disabled:active {
+    transform: none;
+}
+
+.card>.desc {
+    margin-bottom: 12px;
+}
+
 /* Simple toggle */
 .toggle {
     position: relative;

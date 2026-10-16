@@ -7,7 +7,7 @@ English | [简体中文](README.md)
 ![GitHub downloads](https://img.shields.io/github/downloads/twoone-3/AdGuardHomeForRoot/total?logo=github&logoColor=white&color=ffd166)
 ![License](https://img.shields.io/badge/License-MIT-9b5de5?logo=opensourceinitiative&logoColor=white)
 [![Docs](https://img.shields.io/badge/Docs-Guide-0066ff?logo=book&logoColor=white)](docs/index.md)
-[![Join Telegram Channel](https://img.shields.io/badge/Telegram-Join%20Channel-06d6a0?logo=telegram&logoColor=white)](https://t.me/+Q3Ur_HCYdM0xM2I1)
+[![Join Telegram Channel](https://img.shields.io/badge/Telegram-Join%20Channel-06d6a0?logo=telegram&logoColor=white)](https://t.me/twoone3_tech_tips)
 [![Join Telegram Group](https://img.shields.io/badge/Telegram-Join%20Group-118ab2?logo=telegram&logoColor=white)](https://t.me/+Q3Ur_HCYdM0xM2I1)
 
 Follow our channel for the latest news, or join our group for discussion!
@@ -24,19 +24,19 @@ Follow our channel for the latest news, or join our group for discussion!
 
 - Optionally forward local DNS requests to the local AdGuardHome server
 - Filter ads using [AWAvenue-Ads-Rule](https://github.com/TG-Twilight/AWAvenue-Ads-Rule) for lightweight, power-saving, and fewer false positives
-- Access the AdGuardHome control panel from <http://127.0.0.1:3000>, supporting query statistics, modifying DNS upstream servers, and custom rules, etc.
+- Access the AdGuardHome web UI from <http://127.0.0.1:3000>, supporting query statistics, modifying DNS upstream servers, and custom rules, etc.
 
-## Tutorial
+## Quick Start
 
 1. Go to the [Release](https://github.com/twoone-3/AdGuardHomeForRoot/releases/latest) page to download the module
 2. Check Android Settings -> Network & Internet -> Advanced -> Private DNS, ensure `Private DNS` is turned off
 3. Install the module in the root manager and reboot the device
-4. If you see a successful module running prompt, you can access <http://127.0.0.1:3000> to enter the AdGuardHome backend, default username and password are root/root
+4. If you see a successful module running prompt, you can access <http://127.0.0.1:3000> to open the AdGuardHome web UI, default username and password are root/root
 5. For advanced usage tutorials and FAQs, please visit **[Docs & Tutorials](docs/index.md)**.
 
 ## Acknowledgments
 
-- [AWAwenue Ads Rule](https://github.com/TG-Twilight/AWAvenue-Ads-Rule)
+- [AWAvenue Ads Rule](https://github.com/TG-Twilight/AWAvenue-Ads-Rule)
 - [AdguardHome_magisk](https://github.com/410154425/AdGuardHome_magisk)
 - [akashaProxy](https://github.com/ModuleList/akashaProxy)
 - [box_for_magisk](https://github.com/taamarin/box_for_magisk)

@@ -7,7 +7,7 @@
 ![GitHub downloads](https://img.shields.io/github/downloads/twoone-3/AdGuardHomeForRoot/total?logo=github&logoColor=white&color=ffd166)
 ![License](https://img.shields.io/badge/License-MIT-9b5de5?logo=opensourceinitiative&logoColor=white)
 [![Docs](https://img.shields.io/badge/Docs-Guide-0066ff?logo=book&logoColor=white)](docs/index.md)
-[![Join Telegram Channel](https://img.shields.io/badge/Telegram-Join%20Channel-06d6a0?logo=telegram&logoColor=white)](https://t.me/+Q3Ur_HCYdM0xM2I1)
+[![Join Telegram Channel](https://img.shields.io/badge/Telegram-Join%20Channel-06d6a0?logo=telegram&logoColor=white)](https://t.me/twoone3_tech_tips)
 [![Join Telegram Group](https://img.shields.io/badge/Telegram-Join%20Group-118ab2?logo=telegram&logoColor=white)](https://t.me/+Q3Ur_HCYdM0xM2I1)
 
 关注我们的频道获取最新消息，或加入我们的群组进行讨论！  
@@ -24,9 +24,9 @@
 
 - 可选将本机 DNS 请求转发到本地 AdGuardHome 服务器
 - 使用 [秋风广告规则](https://github.com/TG-Twilight/AWAvenue-Ads-Rule) 过滤广告，轻量，省电，少误杀
-- 可从 <http://127.0.0.1:3000> 访问 AdGuardHome 控制面板，支持查询统计，修改 DNS 上游服务器以及自定义规则等功能
+- 可从 <http://127.0.0.1:3000> 访问 AdGuardHome 后台，支持查询统计，修改 DNS 上游服务器以及自定义规则等功能
 
-## 教程
+## 快速开始
 
 1. 前往 [Release](https://github.com/twoone-3/AdGuardHomeForRoot/releases/latest) 页面下载模块
 2. 检查 Android 设置 -> 网络和互联网 -> 高级 -> 私人 DNS，确保 `私人 DNS` 关闭
@@ -36,7 +36,7 @@
 
 ## 鸣谢
 
-- [AWAwenue Ads Rule](https://github.com/TG-Twilight/AWAvenue-Ads-Rule)
+- [AWAvenue Ads Rule](https://github.com/TG-Twilight/AWAvenue-Ads-Rule)
 - [AdguardHome_magisk](https://github.com/410154425/AdGuardHome_magisk)
 - [akashaProxy](https://github.com/ModuleList/akashaProxy)
 - [box_for_magisk](https://github.com/taamarin/box_for_magisk)

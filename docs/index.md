@@ -29,7 +29,7 @@
 - **服务控制**：支持一键“启动”、“停止”、“重启”核心服务。
 - **日志查看**：内置实时高亮的“核心日志”与“模块运行历史”查看器。
 - **维护工具**：支持一键导出调试日志，并可直接调用系统文件查看器打开生成的 `debug.log`。
-- **密码计算**：在“密码计算”分页中把明文密码转换为 `AdGuardHome.yaml` 所需的 bcrypt 哈希，可一键复制或直接写回配置文件（写入前自动备份为 `.bak`），无需在设备上安装 `htpasswd` 等工具。
+- **密码计算**：在“密码计算”分页中把明文密码转换为 `AdGuardHome.yaml` 所需的 bcrypt 哈希，可一键复制或直接写回配置文件（写入前自动备份为 `.bak`，写入后需重启核心才会生效）。
 
 如果你更倾向于使用独立 App 管理 AdGuardHome 核心，可以尝试使用 [AdGuard Home Manager](https://github.com/JGeek00/adguard-home-manager) 应用。
 
@@ -138,7 +138,7 @@ dns:
 
 ## 模块打包 (Module Packaging)
 
-模块根目录下提供了一个名为 `pack.ps1` 的打包脚本，用户可以通过它快速生成模块的安装包。
+模块根目录下提供了 `pack.ps1`（Windows）和 `pack.sh`（Linux / macOS / CI）两个打包脚本，逻辑一致：下载并缓存最新版 AdGuardHome，与 `src/` 一起打包成模块 ZIP，CI 打包同样复用 `pack.sh`。
 
 在 Windows 系统上，打开 PowerShell 并执行以下命令：
 
@@ -146,11 +146,19 @@ dns:
 .\pack.ps1
 ```
 
+在 Linux / macOS 上执行：
+
+```shell
+./pack.sh          # 打包 arm64 + armv7
+./pack.sh arm64    # 仅打包 arm64
+./pack.sh armv7    # 仅打包 armv7
+```
+
 运行脚本后，以下操作将自动完成：
 
 1. 创建 `cache` 目录（如果尚未存在）。
 2. 下载并缓存最新版本的 AdGuardHome（仅在 `cache` 目录中未找到缓存时执行下载）。
-3. 将 AdGuardHome 与模块的其他文件打包成一个 ZIP 文件。
+3. 将 AdGuardHome 与模块的其他文件打包成 ZIP 文件（输出至 `cache/AdGuardHomeForRoot_<arch>.zip`）。
 
 该脚本的设计确保了高效性：如果 `cache` 目录中已存在 AdGuardHome 的缓存版本，则无需重复下载，从而节省时间和带宽。
 
@@ -160,23 +168,15 @@ dns:
 
 **A:**  
 
+- 确保设备的 **私人 DNS** 功能已关闭：  
+  前往 **设置 -> 网络和互联网 -> 高级 -> 私人 DNS**，并将其设置为关闭。
+
 - 检查 AdGuardHome 是否在运行：  
   使用以下命令查看进程状态：  
 
   ```shell
   ps | grep AdGuardHome
   ```
-
-- 确保设备的 **私人 DNS** 功能已关闭：  
-  前往 **设置 -> 网络和互联网 -> 高级 -> 私人 DNS**，并将其设置为关闭。
-
-### **Q: 如何更改 AdGuardHome 的默认端口？**  
-
-**A:**  
-
-- 打开 **`/data/adb/agh/bin/AdGuardHome.yaml`** 文件。  
-- 修改 `bind_host` 的端口号为所需值。  
-- 保存文件后，重启模块以应用更改。
 
 ### **Q: 忘记 AdGuardHome 后台密码怎么办？**
 
@@ -197,7 +197,7 @@ users:
 
 需要注意：`password` 字段必须填入 bcrypt 哈希（形如 `$2b$12$` 开头的 60 个字符），不能直接填入明文密码；`cost` 越大越安全，计算也越慢，一般使用 10–12 即可。  
 
-### **Q: 如何禁用模块的 iptables 转发规则？**  
+### **Q: 如何仅使用 DNS 服务而不使用 iptables 转发规则？**  
 
 **A:**  
 
@@ -211,6 +211,7 @@ users:
 
 - 确保代理模块的上游 DNS 服务器配置为 **`127.0.0.1:5591`**。  
 - 检查代理模块的配置文件，确保所有 DNS 查询通过 AdGuardHome。
+- 检查是否更新广告屏蔽规则，或者更换为其他规则源。
 
 ### **Q: 模块是否会影响设备性能？**  
 

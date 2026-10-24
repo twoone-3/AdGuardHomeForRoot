@@ -45,6 +45,8 @@
   "toast.cmd_failed": "命令执行失败，退出码",
   "toast.invalid_field": "以下字段取值无效：",
   "toast.debug_missing": "还没有调试日志，请先点击「生成调试日志」",
+  "toast.settings_read_fail": "无法读取 settings.conf",
+  "toast.open_fail": "无法调起浏览器，请手动访问：",
 
   "a11y.language": "语言",
   "tab.list": "功能分区",

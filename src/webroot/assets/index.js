@@ -24,7 +24,9 @@
             if (!It) { resolve({ e: -1, s: "" }); return; }
             const cb = "_mc" + rr++;
             const timer = setTimeout(() => {
-                delete window[cb];
+                // The command may still be running; leave a no-op stub so the
+                // manager's late callback does not throw in the page.
+                window[cb] = () => {};
                 resolve({ e: -2, s: "" });
             }, timeout || DEFAULT_TIMEOUT);
             window[cb] = (code, out, err) => {
@@ -75,25 +77,17 @@
         adg_group: { label: "settings.group", test: (v) => /^[A-Za-z0-9_.-]{1,32}$/.test(v) }
     };
 
-    let toastCount = 0;
-
     function showToast(msg) {
+        const wrap = $('toast-container');
         const el = document.createElement('div');
         el.className = 'toast';
-        el.setAttribute('role', 'status');
         el.textContent = msg;
-        $('toast-container').appendChild(el);
-        toastCount++;
-        setTimeout(() => {
-            el.remove();
-            toastCount--;
-        }, 3000);
-        while (toastCount > 3) {
-            const first = $('toast-container').firstElementChild;
-            if (!first) break;
-            first.remove();
-            toastCount--;
-        }
+        wrap.appendChild(el);
+        // The container is the single aria-live region, so a toast itself needs
+        // no role. Count is derived from the DOM: an early-evicted toast must
+        // not double-decrement a counter.
+        setTimeout(() => { if (el.isConnected) el.remove(); }, 3000);
+        while (wrap.children.length > 3) wrap.firstElementChild.remove();
     }
 
     // Runs fn with the button disabled so a double tap cannot fire twice.
@@ -110,10 +104,19 @@
     function reportExec(res) {
         if (res.e === -2) { showToast(t("toast.exec_timeout")); return false; }
         if (res.e !== 0) {
-            showToast(`${t("toast.cmd_failed")} ${res.e}`);
+            // Prefer the first stderr line: a bare exit code gives the user
+            // nothing to act on.
+            const err = (res.err || "").trim().split("\n")[0];
+            showToast(err ? `${t("toast.cmd_failed")} ${res.e}: ${err}` : `${t("toast.cmd_failed")} ${res.e}`);
             return false;
         }
         return true;
+    }
+
+    // Only touch the DOM when the text actually changed: the poll runs every 5s
+    // and re-assignments would keep a screen reader re-announcing the status.
+    function setText(el, text) {
+        if (el.textContent !== text) el.textContent = text;
     }
 
     // Parse "key=value" lines, skipping comments. Values may contain '='.
@@ -142,7 +145,7 @@
                 [ -f ${shq(pidFile)} ] && cat ${shq(pidFile)} || echo ""; echo "${marker}";
                 cat ${shq(settingsPath)} 2>/dev/null; echo "${marker}";
                 grep -m1 "address:" ${shq(yamlPath)} | sed 's/.*address: *//'; echo "${marker}";
-                ${shq(binPath)} --version 2>/dev/null | head -5 | grep -oE '[0-9]+\\.[0-9]+[^ ,]*' | head -1
+                ${shq(binPath)} --version 2>/dev/null | head -5 | grep -m1 -i version | grep -oE '[0-9]+\\.[0-9]+[^ ,]*' | head -1
             `;
             const res = await exec(cmd);
             if (res.e === -2) return;
@@ -152,9 +155,9 @@
             const isRunning = /^\d+$/.test(pid);
             document.body.className = isRunning ? 'running' : 'stopped';
             currentStatus = isRunning ? "running" : "stopped";
-            elements.statusText.textContent = t(`status.${currentStatus}`);
+            setText(elements.statusText, t(`status.${currentStatus}`));
             if (isRunning) {
-                elements.pidBadge.textContent = "PID: " + pid;
+                setText(elements.pidBadge, "PID: " + pid);
                 elements.pidBadge.classList.remove('hidden');
             } else {
                 elements.pidBadge.classList.add('hidden');
@@ -172,7 +175,7 @@
             }
 
             webAddr = parts[2] || "127.0.0.1:3000";
-            elements.version.textContent = parts[3] ? "v" + parts[3] : "...";
+            setText(elements.version, parts[3] ? "v" + parts[3] : "...");
         } finally {
             refreshing = false;
         }
@@ -193,6 +196,16 @@
     });
 
     $('btn-save').onclick = () => withBusy($('btn-save'), async () => {
+        // Read the file before validating: when it is unreadable the fields are
+        // empty and validation would otherwise blame the fields for the real
+        // cause. Appending blindly would also drop the readonly path block and
+        // startup_timeout that tool.sh depends on.
+        const cur = await exec(`cat ${shq(settingsPath)}`, 30000);
+        if (cur.e !== 0 || !cur.s) {
+            showToast(t("toast.settings_read_fail"));
+            return;
+        }
+
         const values = {};
         const bad = [];
         for (let k in elements.fields) {
@@ -210,18 +223,26 @@
             return;
         }
 
-        // sed only rewrites keys that already exist, so append the missing ones
-        // instead of silently dropping the change.
-        const cur = parseConf((await exec(`cat ${shq(settingsPath)}`)).s);
+        // sed only rewrites keys that already exist, so the missing ones must be
+        // appended.
+        const existing = parseConf(cur.s);
+        const missing = Object.keys(values).filter(k => !(k in existing));
+
         let cmd = "";
         for (let k in values) {
-            if (k in cur) {
+            if (k in existing) {
                 cmd += `sed -i ${shq(`s/^${k}=.*/${k}=${values[k]}/`)} ${shq(settingsPath)}; `;
-            } else {
+            }
+        }
+        if (missing.length) {
+            // If the file was hand-edited without a trailing newline, appending
+            // directly would splice onto its last line and corrupt that setting.
+            cmd += `[ -n "$(tail -c 1 ${shq(settingsPath)})" ] && printf '\\n' >> ${shq(settingsPath)}; `;
+            for (const k of missing) {
                 cmd += `printf '%s\\n' ${shq(`${k}=${values[k]}`)} >> ${shq(settingsPath)}; `;
             }
         }
-        const res = await exec(cmd);
+        const res = await exec(cmd, 30000);
         if (reportExec(res)) showToast(t("toast.saved"));
         refresh();
     });
@@ -234,8 +255,11 @@
         // window.open stays inside the manager's edge-to-edge WebView, which draws
         // the panel under the status bar (issues #43/#44). Hand it to a browser
         // that applies its own insets, and fall back if there is none.
+        // No --user: the manager and the browser normally share user 0.
         const res = await exec(`am start -a android.intent.action.VIEW -d ${shq(url)}`);
-        if (res.e !== 0) window.open(url, '_blank');
+        if (res.e !== 0 && !window.open(url, '_blank')) {
+            showToast(`${t("toast.open_fail")} ${url}`);
+        }
     });
 
     const tabButtons = Array.from(document.querySelectorAll('[data-tab]'));
@@ -353,13 +377,20 @@
             showToast(t("toast.debug_missing"));
             return;
         }
-        // /data/adb is not reachable through the external-storage documents
-        // provider, so stage a copy where an external reader can actually get it.
-        const shared = '/sdcard/Download/agh-debug.log';
-        const staged = await exec(`cp -f ${shq(debugLogPath)} ${shq(shared)} 2>/dev/null`);
-        const target = staged.e === 0 ? shared : debugLogPath;
-        const res = await exec(`am start -a android.intent.action.VIEW -d ${shq('file://' + target)} -t ${shq('text/plain')}`);
-        showToast(res.e === 0 ? t("toast.opening_file") : `${t("toast.cmd_failed")} ${res.e}`);
+        // /data/adb is unreachable for external apps -- neither through a file://
+        // URI nor through the external-storage documents provider -- so stage a
+        // world-readable copy in shared storage. Report the real path on failure
+        // rather than handing the viewer something it cannot open.
+        const shared = '/storage/emulated/0/Download/agh-debug.log';
+        const staged = await exec(
+            `cp -f ${shq(debugLogPath)} ${shq(shared)} && chmod 644 ${shq(shared)} && { chown 1023:1023 ${shq(shared)} 2>/dev/null || true; }`,
+            30000);
+        if (staged.e !== 0) {
+            showToast(`${t("toast.cmd_failed")} ${staged.e}: ${debugLogPath}`);
+            return;
+        }
+        const res = await exec(`am start -a android.intent.action.VIEW -d ${shq('file://' + shared)} -t ${shq('text/plain')}`);
+        showToast(res.e === 0 ? `${t("toast.opening_file")} ${shared}` : `${t("toast.cmd_failed")} ${res.e}: ${shared}`);
     });
 
     // ==================== 密码计算 (AdGuardHome.yaml · bcrypt) ====================

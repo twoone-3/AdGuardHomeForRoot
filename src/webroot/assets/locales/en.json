@@ -45,6 +45,8 @@
   "toast.cmd_failed": "Command failed, exit code",
   "toast.invalid_field": "Invalid value for:",
   "toast.debug_missing": "No debug log yet, tap \"Generate Debug Log\" first",
+  "toast.settings_read_fail": "Cannot read settings.conf",
+  "toast.open_fail": "Could not open the panel, visit it manually:",
 
   "a11y.language": "Language",
   "tab.list": "Sections",

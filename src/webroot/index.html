@@ -6,6 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="color-scheme" content="light dark">
     <title>AdGuardHome Config</title>
+    <!-- Served as a virtual resource by the KernelSU/APatch WebUI at this origin;
+         defines --window-inset-* so the page can clear the status bar. 404s (and
+         is ignored) on managers that do not provide it. -->
+    <link rel="stylesheet" href="/internal/insets.css">
     <link rel="stylesheet" href="./assets/style.css">
 </head>
 
@@ -13,10 +17,10 @@
 
     <div id="toast-container" class="toast-wrap" aria-live="polite" aria-atomic="false"></div>
 
-    <div class="status-line" id="status-container" aria-live="polite">
+    <div class="status-line" id="status-container">
         <span class="dot" aria-hidden="true"></span>
 
-        <span id="status-text" data-i18n="status.checking" class="status-text">
+        <span id="status-text" data-i18n="status.checking" class="status-text" aria-live="polite">
             Checking...
         </span>
 

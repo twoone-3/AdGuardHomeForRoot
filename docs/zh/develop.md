@@ -61,6 +61,8 @@ Linux / macOS（需要 `curl` 或 `wget`、`tar`，以及 `zip`、`7z`/`7za`、`
 2. 以矩阵方式调用 `pack.sh arm64` / `pack.sh armv7` 构建两个架构的包
 3. 自动创建 GitHub Release，正文取自 `changelog.md`，附件为两个 ZIP
 
+该 workflow 也可以手动触发（`workflow_dispatch`，或 `gh workflow run pack.yml --ref <分支名>`）。两个架构各上传一个 artifact，内容是模块的平铺文件，因此从 Actions 页面下载的 `AdGuardHomeForRoot_<arch>.zip` **本身就是模块包**，可直接安装，而不是「ZIP 套 ZIP」。发版任务会把同样的 artifact 按 `pack.sh` 的结构重新打包成两个 release ZIP。
+
 发版前请同步更新以下文件：
 
 - `version.json`：`versionCode` 递增，`version` 使用 `YYYYMMDD`

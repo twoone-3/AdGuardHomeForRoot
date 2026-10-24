@@ -61,6 +61,8 @@ Pushing a tag in the form `YYYYMMDD` triggers [`pack.yml`](../../.github/workflo
 2. Builds both architectures via a matrix job calling `pack.sh arm64` / `pack.sh armv7`
 3. Creates a GitHub Release whose body comes from `changelog.md` and whose assets are the two ZIPs
 
+The workflow can also be run manually (`workflow_dispatch`, or `gh workflow run pack.yml --ref <branch>`). Both jobs upload one artifact per architecture holding the flat module contents, so the `AdGuardHomeForRoot_<arch>.zip` you download from the Actions page **is** the module ZIP and can be installed directly — it is not a ZIP containing a ZIP. The release job repacks the same artifacts back into the two release ZIPs with the layout `pack.sh` produces.
+
 Before releasing, update:
 
 - `version.json`: increment `versionCode`, set `version` to `YYYYMMDD`

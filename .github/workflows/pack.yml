@@ -27,13 +27,25 @@ jobs:
         run: |
           set -euo pipefail
           bash pack.sh "${{ matrix.arch }}"
-          cp "cache/AdGuardHomeForRoot_${{ matrix.arch }}.zip" .
+
+      # upload-artifact always wraps its inputs in a zip, so uploading the module
+      # zip directly produces a zip-inside-zip download. Unpack it first: the
+      # artifact zip the runner creates then IS the module zip, and what you get
+      # from the Actions page can be flashed straight away. File permissions are
+      # fine to lose here because customize.sh chmods the binary and the scripts
+      # during installation.
+      - name: Stage flat module contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "module-${{ matrix.arch }}"
+          unzip -q "cache/AdGuardHomeForRoot_${{ matrix.arch }}.zip" -d "module-${{ matrix.arch }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: AdGuardHomeForRoot_${{ matrix.arch }}
-          path: AdGuardHomeForRoot_${{ matrix.arch }}.zip
+          path: module-${{ matrix.arch }}
           if-no-files-found: error
 
   release:
@@ -59,7 +71,16 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: AdGuardHomeForRoot_*
-          merge-multiple: true
+
+      # The artifacts now hold the flat module contents; repack them back into the
+      # release zips with the same layout pack.sh produces (zip root = src root).
+      - name: Repack module zips
+        shell: bash
+        run: |
+          set -euo pipefail
+          for arch in arm64 armv7; do
+            (cd "AdGuardHomeForRoot_${arch}" && zip -r -9 "../AdGuardHomeForRoot_${arch}.zip" .)
+          done
 
       - name: Create release
         uses: softprops/action-gh-release@v2

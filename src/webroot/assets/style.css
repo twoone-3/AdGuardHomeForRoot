@@ -32,7 +32,13 @@ body {
     line-height: 1.5;
     -webkit-tap-highlight-color: transparent;
     overflow-y: auto;
-    padding: 10px;
+    /* The manager renders this page edge-to-edge, so keep clear of the status
+       bar and gesture nav. KernelSU injects --window-inset-*; env() covers the
+       managers that do not (needs viewport-fit=cover in index.html). */
+    padding: max(10px, var(--window-inset-top, env(safe-area-inset-top, 0px)))
+        max(10px, var(--window-inset-right, env(safe-area-inset-right, 0px)))
+        max(10px, var(--window-inset-bottom, env(safe-area-inset-bottom, 0px)))
+        max(10px, var(--window-inset-left, env(safe-area-inset-left, 0px)));
     font-family: -apple-system, system-ui, sans-serif;
 }
 
@@ -219,12 +225,102 @@ h3 {
     display: none !important;
 }
 
+/* Kept in the accessibility tree, unlike .hidden, so the label still names
+   its control. */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Log highlighting. Applied as classes rather than inline styles so the log
+   body can be built from text nodes only. */
+#log-content .lg-ts {
+    color: #888;
+}
+
+#log-content .lg-info {
+    color: #4CAF50;
+}
+
+#log-content .lg-warn {
+    color: #FFC107;
+}
+
+#log-content .lg-error {
+    color: #F44336;
+}
+
+#log-content .lg-ico {
+    filter: drop-shadow(0 0 2px rgba(255, 255, 255, .3));
+}
+
+.btn:focus-visible,
+.tab-btn:focus-visible,
+.input:focus-visible,
+.checkbox:focus-visible {
+    outline: 2px solid var(--ac);
+    outline-offset: 2px;
+}
+
+.tab-content:focus {
+    outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .btn,
+    .running .dot::after,
+    .toast {
+        animation: none;
+        transition: none;
+    }
+
+    .btn:active {
+        transform: none;
+    }
+}
+
 .toast-wrap {
     position: fixed;
-    bottom: 30px;
+    bottom: calc(30px + var(--window-inset-bottom, env(safe-area-inset-bottom, 0px)));
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: max-content;
+    max-width: 90vw;
+    pointer-events: none;
+}
+
+.toast {
+    background: rgba(33, 37, 41, .94);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: center;
+    max-width: 90vw;
+    word-break: break-word;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .3);
+    animation: toast-in .18s ease-out;
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
 }
 
 .lang-select-sm {

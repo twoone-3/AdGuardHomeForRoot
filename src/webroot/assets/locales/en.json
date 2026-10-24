@@ -41,6 +41,13 @@
   "toast.generated": "Generated:",
   "toast.opening_file": "Opening with system application...",
   "toast.open_manager": "Please open from KernelSU/APatch Manager",
+  "toast.exec_timeout": "Operation timed out",
+  "toast.cmd_failed": "Command failed, exit code",
+  "toast.invalid_field": "Invalid value for:",
+  "toast.debug_missing": "No debug log yet, tap \"Generate Debug Log\" first",
+
+  "a11y.language": "Language",
+  "tab.list": "Sections",
 
   "tab.password": "Password",
 

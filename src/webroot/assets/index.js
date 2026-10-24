@@ -9,20 +9,41 @@
     const debugLogPath = ii + "/debug.log";
     const pidFile = ii + "/bin/agh.pid";
     const yamlPath = ii + "/bin/AdGuardHome.yaml";
+    const binPath = ii + "/bin/AdGuardHome";
 
     if (typeof ksu < "u" && typeof ksu.exec == "function") { It = ksu; }
     else if (typeof ap < "u" && typeof ap.exec == "function") { It = ap; }
 
-    function exec(cmd) {
+    // tool.sh start waits up to startup_timeout (120s by default) for the DNS
+    // listener, so start/stop need a much longer budget than everything else.
+    const DEFAULT_TIMEOUT = 15000;
+    const LONG_TIMEOUT = 180000;
+
+    function exec(cmd, timeout) {
         return new Promise((resolve) => {
             if (!It) { resolve({ e: -1, s: "" }); return; }
             const cb = "_mc" + rr++;
-            window[cb] = (code, out, err) => {
+            const timer = setTimeout(() => {
                 delete window[cb];
-                resolve({ e: code || 0, s: (out || "").replace(/\r/g, "") });
+                resolve({ e: -2, s: "" });
+            }, timeout || DEFAULT_TIMEOUT);
+            window[cb] = (code, out, err) => {
+                clearTimeout(timer);
+                delete window[cb];
+                resolve({
+                    e: code || 0,
+                    s: (out || "").replace(/\r/g, ""),
+                    err: (err || "").replace(/\r/g, "")
+                });
             };
             It.exec(cmd, "{}", cb);
         });
+    }
+
+    // POSIX single-quote escaping. Every path and value that reaches the shell
+    // goes through this so user input cannot terminate the quoted argument.
+    function shq(s) {
+        return "'" + String(s).replace(/'/g, "'\\''") + "'";
     }
 
     const $ = id => document.getElementById(id);
@@ -44,120 +65,269 @@
         }
     };
 
+    // settings.conf values are written back with sed, so each field is held to a
+    // charset that cannot break out of the substitution (no & / \ or quotes).
+    const FIELD_RULES = {
+        enable_iptables: { label: "settings.enable_iptables" },
+        block_ipv6_dns: { label: "settings.block_ipv6" },
+        redir_port: { label: "settings.redir_port", test: (v) => /^\d+$/.test(v) && +v >= 1 && +v <= 65535 },
+        adg_user: { label: "settings.user", test: (v) => /^[A-Za-z0-9_.-]{1,32}$/.test(v) },
+        adg_group: { label: "settings.group", test: (v) => /^[A-Za-z0-9_.-]{1,32}$/.test(v) }
+    };
+
+    let toastCount = 0;
+
     function showToast(msg) {
-        const t = document.createElement('div');
-        t.className = 'toast';
-        t.textContent = msg;
-        $('toast-container').appendChild(t);
-        setTimeout(() => t.remove(), 3000);
+        const el = document.createElement('div');
+        el.className = 'toast';
+        el.setAttribute('role', 'status');
+        el.textContent = msg;
+        $('toast-container').appendChild(el);
+        toastCount++;
+        setTimeout(() => {
+            el.remove();
+            toastCount--;
+        }, 3000);
+        while (toastCount > 3) {
+            const first = $('toast-container').firstElementChild;
+            if (!first) break;
+            first.remove();
+            toastCount--;
+        }
     }
+
+    // Runs fn with the button disabled so a double tap cannot fire twice.
+    async function withBusy(btn, fn) {
+        if (!btn || btn.disabled) return;
+        btn.disabled = true;
+        try {
+            await fn();
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    function reportExec(res) {
+        if (res.e === -2) { showToast(t("toast.exec_timeout")); return false; }
+        if (res.e !== 0) {
+            showToast(`${t("toast.cmd_failed")} ${res.e}`);
+            return false;
+        }
+        return true;
+    }
+
+    // Parse "key=value" lines, skipping comments. Values may contain '='.
+    function parseConf(text) {
+        const conf = {};
+        (text || "").split('\n').forEach(l => {
+            const line = l.trim();
+            if (!line || line.startsWith('#')) return;
+            const i = line.indexOf('=');
+            if (i < 1) return;
+            conf[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+        });
+        return conf;
+    }
+
+    let confLoaded = false;
+    let webAddr = "127.0.0.1:3000";
+    let refreshing = false;
 
     async function refresh() {
-        const marker = "::SPLIT::";
-        const cmd = `
-            [ -f ${pidFile} ] && cat ${pidFile} || echo ""; echo "${marker}";
-            cat ${settingsPath} 2>/dev/null; echo "${marker}";
-            grep -m1 "address:" ${yamlPath} | sed 's/.*address: *//'; echo "${marker}";
-            /data/adb/agh/bin/AdGuardHome --version | head -1 | sed 's/.*version //'
-        `;
-        const res = await exec(cmd);
-        const parts = res.s.split(marker).map(p => p.trim());
+        if (refreshing) return;
+        refreshing = true;
+        try {
+            const marker = "::SPLIT::";
+            const cmd = `
+                [ -f ${shq(pidFile)} ] && cat ${shq(pidFile)} || echo ""; echo "${marker}";
+                cat ${shq(settingsPath)} 2>/dev/null; echo "${marker}";
+                grep -m1 "address:" ${shq(yamlPath)} | sed 's/.*address: *//'; echo "${marker}";
+                ${shq(binPath)} --version 2>/dev/null | head -5 | grep -oE '[0-9]+\\.[0-9]+[^ ,]*' | head -1
+            `;
+            const res = await exec(cmd);
+            if (res.e === -2) return;
+            const parts = res.s.split(marker).map(p => p.trim());
 
-        const pid = parts[0];
-        const isRunning = pid && /^\d+$/.test(pid);
-        document.body.className = isRunning ? 'running' : 'stopped';
-        currentStatus = isRunning ? "running" : "stopped";
-        elements.statusText.textContent = t(`status.${currentStatus}`);
-        if (isRunning) {
-            elements.pidBadge.textContent = "PID: " + pid;
-            elements.pidBadge.classList.remove('hidden');
-        } else {
-            elements.pidBadge.classList.add('hidden');
-        }
-
-        if (!window._loaded) {
-            const conf = {};
-            parts[1].split('\n').forEach(l => {
-                const kv = l.split('=');
-                if (kv.length === 2) conf[kv[0].trim()] = kv[1].trim();
-            });
-            for (let k in elements.fields) {
-                const el = elements.fields[k];
-                if (el.type === 'checkbox') el.checked = conf[k] === 'true';
-                else el.value = conf[k] || "";
+            const pid = parts[0] || "";
+            const isRunning = /^\d+$/.test(pid);
+            document.body.className = isRunning ? 'running' : 'stopped';
+            currentStatus = isRunning ? "running" : "stopped";
+            elements.statusText.textContent = t(`status.${currentStatus}`);
+            if (isRunning) {
+                elements.pidBadge.textContent = "PID: " + pid;
+                elements.pidBadge.classList.remove('hidden');
+            } else {
+                elements.pidBadge.classList.add('hidden');
             }
-            window._loaded = true;
-        }
 
-        window._webAddr = parts[2] || "127.0.0.1:3000";
-        elements.version.textContent = (parts[3] || "...");
+            // Loaded once so the 5s poll does not clobber values being typed.
+            if (!confLoaded) {
+                const conf = parseConf(parts[1]);
+                for (let k in elements.fields) {
+                    const el = elements.fields[k];
+                    if (el.type === 'checkbox') el.checked = conf[k] === 'true';
+                    else el.value = conf[k] || "";
+                }
+                confLoaded = true;
+            }
+
+            webAddr = parts[2] || "127.0.0.1:3000";
+            elements.version.textContent = parts[3] ? "v" + parts[3] : "...";
+        } finally {
+            refreshing = false;
+        }
     }
 
-    $('btn-start').onclick = async () => {
+    $('btn-start').onclick = () => withBusy($('btn-start'), async () => {
         showToast(t("toast.starting"));
-        await exec(`${scriptTool} start`);
+        const res = await exec(`${shq(scriptTool)} start`, LONG_TIMEOUT);
+        reportExec(res);
         refresh();
-    };
-
-    $('btn-stop').onclick = async () => {
-        showToast(t("toast.stopping"));
-        await exec(`${scriptTool} stop`);
-        refresh();
-    };
-
-    $('btn-save').onclick = async () => {
-        let cmd = "";
-        for (let k in elements.fields) {
-            const el = elements.fields[k];
-            const v = el.type === 'checkbox' ? el.checked : el.value;
-            cmd += `sed -i "s/^${k}=.*/${k}=${v}/" ${settingsPath}; `;
-        }
-        await exec(cmd);
-        showToast(t("toast.saved"));
-    };
-
-    elements.linkPanel.onclick = () => {
-        let addr = window._webAddr || "127.0.0.1:3000";
-        if (addr.startsWith(":")) addr = "127.0.0.1" + addr;
-        if (addr.startsWith("0.0.0.0")) addr = addr.replace("0.0.0.0", "127.0.0.1");
-        window.open(`http://${addr}`, '_blank');
-    };
-
-    document.querySelectorAll('[data-tab]').forEach(b => {
-        b.onclick = () => {
-            document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
-            b.classList.add('active');
-            $('tab-' + b.dataset.tab).classList.add('active');
-            if (b.dataset.tab === 'logs') loadLog();
-            if (b.dataset.tab === 'password') loadYamlUser();
-        };
     });
 
-    let logType = 'bin';
-    async function loadLog() {
-        elements.logContent.textContent = t("toast.loading");
-        const path = logType === 'bin' ? binLogPath : historyLogPath;
-        const res = await exec(`tail -n 100 ${path}`);
-        if (!res.s) {
-            elements.logContent.textContent = t("toast.no_logs");
+    $('btn-stop').onclick = () => withBusy($('btn-stop'), async () => {
+        showToast(t("toast.stopping"));
+        const res = await exec(`${shq(scriptTool)} stop`, LONG_TIMEOUT);
+        reportExec(res);
+        refresh();
+    });
+
+    $('btn-save').onclick = () => withBusy($('btn-save'), async () => {
+        const values = {};
+        const bad = [];
+        for (let k in elements.fields) {
+            const el = elements.fields[k];
+            const rule = FIELD_RULES[k];
+            const v = el.type === 'checkbox' ? String(el.checked) : el.value.trim();
+            if (rule.test && !rule.test(v)) {
+                bad.push(t(rule.label));
+                continue;
+            }
+            values[k] = v;
+        }
+        if (bad.length) {
+            showToast(`${t("toast.invalid_field")} ${bad.join(", ")}`);
             return;
         }
 
-        // Apply simple highlighting
-        const lines = res.s.split('\n').map(line => {
-            if (!line.trim()) return "";
-            // Highlight Timestamps
-            line = line.replace(/^(\d{4}[-/]\d{2}[-/]\d{2}\s\d{2}:\d{2}:\d{2}(\.\d+)?)/, '<span style="color:#888">$1</span>');
-            // Highlight Levels
-            line = line.replace(/\[(info|INFO|debug|DEBUG)\]/, '[<span style="color:#4CAF50">$1</span>]');
-            line = line.replace(/\[(warn|WARN|warning|WARNING)\]/, '[<span style="color:#FFC107">$1</span>]');
-            line = line.replace(/\[(error|ERROR|fatal|FATAL)\]/, '[<span style="color:#F44336">$1</span>]');
-            // Status icons in history log
-            line = line.replace(/(🟢|🔴|🧹|LOG)/g, '<span style="filter:drop-shadow(0 0 2px rgba(255,255,255,0.3))">$1</span>');
-            return `<div>${line}</div>`;
-        });
+        // sed only rewrites keys that already exist, so append the missing ones
+        // instead of silently dropping the change.
+        const cur = parseConf((await exec(`cat ${shq(settingsPath)}`)).s);
+        let cmd = "";
+        for (let k in values) {
+            if (k in cur) {
+                cmd += `sed -i ${shq(`s/^${k}=.*/${k}=${values[k]}/`)} ${shq(settingsPath)}; `;
+            } else {
+                cmd += `printf '%s\\n' ${shq(`${k}=${values[k]}`)} >> ${shq(settingsPath)}; `;
+            }
+        }
+        const res = await exec(cmd);
+        if (reportExec(res)) showToast(t("toast.saved"));
+        refresh();
+    });
 
-        elements.logContent.innerHTML = lines.join('');
+    elements.linkPanel.onclick = () => withBusy(elements.linkPanel, async () => {
+        let addr = webAddr || "127.0.0.1:3000";
+        if (addr.startsWith(":")) addr = "127.0.0.1" + addr;
+        if (addr.startsWith("0.0.0.0")) addr = addr.replace("0.0.0.0", "127.0.0.1");
+        const url = `http://${addr}`;
+        // window.open stays inside the manager's edge-to-edge WebView, which draws
+        // the panel under the status bar (issues #43/#44). Hand it to a browser
+        // that applies its own insets, and fall back if there is none.
+        const res = await exec(`am start -a android.intent.action.VIEW -d ${shq(url)}`);
+        if (res.e !== 0) window.open(url, '_blank');
+    });
+
+    const tabButtons = Array.from(document.querySelectorAll('[data-tab]'));
+
+    function activateTab(name, focus) {
+        tabButtons.forEach(b => {
+            const on = b.dataset.tab === name;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-selected', on ? 'true' : 'false');
+            b.tabIndex = on ? 0 : -1;
+            if (on && focus) b.focus();
+        });
+        document.querySelectorAll('.tab-content').forEach(el => {
+            el.classList.toggle('active', el.id === 'tab-' + name);
+        });
+        if (name === 'logs') loadLog();
+        if (name === 'password') loadYamlUser();
+    }
+
+    tabButtons.forEach((b, i) => {
+        b.onclick = () => activateTab(b.dataset.tab);
+        b.onkeydown = (e) => {
+            const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+            if (!step) return;
+            e.preventDefault();
+            const next = tabButtons[(i + step + tabButtons.length) % tabButtons.length];
+            activateTab(next.dataset.tab, true);
+        };
+    });
+
+    // Log rows are built from text nodes: the log contains DNS hostnames, which
+    // are attacker-controlled, so the output must never be parsed as HTML.
+    const LOG_TOKEN_RE =
+        /(\d{4}[-/]\d{2}[-/]\d{2}\s\d{2}:\d{2}:\d{2}(?:\.\d+)?)|(\[(?:info|debug|warn|warning|error|fatal)\])|(\u{1F7E2}|\u{1F534}|\u{1F9F9}|LOG)/giu;
+
+    function tokenClass(m) {
+        if (m[1]) return 'lg-ts';
+        // Third alternative (status icon / LOG marker) leaves the level group unset.
+        if (!m[2]) return 'lg-ico';
+        const lvl = m[2].slice(1, -1).toLowerCase();
+        if (lvl === 'info' || lvl === 'debug') return 'lg-info';
+        if (lvl === 'warn' || lvl === 'warning') return 'lg-warn';
+        return 'lg-error';
+    }
+
+    function renderLog(text) {
+        const frag = document.createDocumentFragment();
+        text.split('\n').forEach(line => {
+            if (!line.trim()) return;
+            const row = document.createElement('div');
+            let last = 0, m;
+            LOG_TOKEN_RE.lastIndex = 0;
+            while ((m = LOG_TOKEN_RE.exec(line)) !== null) {
+                if (m.index > last) row.appendChild(document.createTextNode(line.slice(last, m.index)));
+                const span = document.createElement('span');
+                span.className = tokenClass(m);
+                span.textContent = m[0];
+                row.appendChild(span);
+                last = m.index + m[0].length;
+            }
+            if (last < line.length) row.appendChild(document.createTextNode(line.slice(last)));
+            frag.appendChild(row);
+        });
+        elements.logContent.textContent = '';
+        elements.logContent.appendChild(frag);
+    }
+
+    let logType = 'bin';
+    let logText = '';
+    let logState = 'waiting';
+
+    const LOG_PLACEHOLDER = {
+        waiting: 'logs.waiting',
+        loading: 'toast.loading',
+        empty: 'toast.no_logs'
+    };
+
+    function setLogPlaceholder(state) {
+        logState = state;
+        logText = '';
+        elements.logContent.textContent = t(LOG_PLACEHOLDER[state]);
+    }
+
+    async function loadLog() {
+        setLogPlaceholder('loading');
+        const path = logType === 'bin' ? binLogPath : historyLogPath;
+        const res = await exec(`tail -n 100 ${shq(path)}`, 30000);
+        if (res.e === -2) { showToast(t("toast.exec_timeout")); setLogPlaceholder('empty'); return; }
+        if (!res.s) { setLogPlaceholder('empty'); return; }
+        logState = 'loaded';
+        logText = res.s;
+        renderLog(logText);
         elements.logContent.scrollTop = elements.logContent.scrollHeight;
     }
 
@@ -170,19 +340,27 @@
         };
     });
 
-    $('btn-refresh-log').onclick = loadLog;
+    $('btn-refresh-log').onclick = () => withBusy($('btn-refresh-log'), loadLog);
 
-    $('btn-debug').onclick = async () => {
+    $('btn-debug').onclick = () => withBusy($('btn-debug'), async () => {
         showToast(t("toast.generating"));
-        await exec(`${scriptDebug}`);
-        showToast(`${t("toast.generated")} ${debugLogPath}`);
-    };
+        const res = await exec(shq(scriptDebug), LONG_TIMEOUT);
+        if (reportExec(res)) showToast(`${t("toast.generated")} ${debugLogPath}`);
+    });
 
-    $('btn-open-debug').onclick = async () => {
-        // Use system action to open the file instead of internal viewer
-        await exec(`am start -a android.intent.action.VIEW -d "file://${debugLogPath}" -t "text/plain" || am start -a android.intent.action.VIEW -d "content://com.android.externalstorage.documents/document/primary%3A${debugLogPath.replace(/^\/data\/adb\//, 'adb/')}" -t "text/plain"`);
-        showToast(t("toast.opening_file"));
-    };
+    $('btn-open-debug').onclick = () => withBusy($('btn-open-debug'), async () => {
+        if ((await exec(`[ -f ${shq(debugLogPath)} ]`)).e !== 0) {
+            showToast(t("toast.debug_missing"));
+            return;
+        }
+        // /data/adb is not reachable through the external-storage documents
+        // provider, so stage a copy where an external reader can actually get it.
+        const shared = '/sdcard/Download/agh-debug.log';
+        const staged = await exec(`cp -f ${shq(debugLogPath)} ${shq(shared)} 2>/dev/null`);
+        const target = staged.e === 0 ? shared : debugLogPath;
+        const res = await exec(`am start -a android.intent.action.VIEW -d ${shq('file://' + target)} -t ${shq('text/plain')}`);
+        showToast(res.e === 0 ? t("toast.opening_file") : `${t("toast.cmd_failed")} ${res.e}`);
+    });
 
     // ==================== 密码计算 (AdGuardHome.yaml · bcrypt) ====================
 
@@ -209,8 +387,8 @@
     }
 
     async function readYamlLines() {
-        const res = await exec(`cat ${yamlPath}`);
-        if (!res.s) return null;
+        const res = await exec(`cat ${shq(yamlPath)}`, 30000);
+        if (res.e !== 0 || !res.s) return null;
         return res.s.split('\n');
     }
 
@@ -240,7 +418,8 @@
         const users = [];
         let entry = -1;
         for (let i = range.start; i <= range.end; i++) {
-            const isEntry = i < range.end && /^\s*-\s*name:/.test(lines[i]);
+            const line = lines[i] || '';
+            const isEntry = i < range.end && /^\s*-\s*name:/.test(line);
             if (!isEntry && i !== range.end) continue;
 
             if (entry >= 0) {
@@ -355,10 +534,10 @@
         const indent = (/^\s*/.exec(lines[entry.pwLine - 1]) || [''])[0];
         const newLine = indent + 'password: ' + hash;
 
-        await exec(`cp -f '${yamlPath}' '${yamlPath}.bak'`);
-        const res = await exec(`sed -i '${entry.pwLine}s|.*|${newLine}|' '${yamlPath}'`);
+        await exec(`cp -f ${shq(yamlPath)} ${shq(yamlPath + '.bak')}`);
+        const res = await exec(`sed -i ${shq(`${entry.pwLine}s|.*|${newLine}|`)} ${shq(yamlPath)}`);
         const written = res.e === 0
-            ? (await exec(`sed -n '${entry.pwLine}p' '${yamlPath}'`)).s.trim()
+            ? (await exec(`sed -n ${shq(`${entry.pwLine}p`)} ${shq(yamlPath)}`)).s.trim()
             : '';
 
         if (written !== newLine.trim()) {
@@ -370,9 +549,9 @@
         showToast(t('toast.pw_applied'));
     }
 
-    pwEl.generate.onclick = generatePwHash;
-    pwEl.copy.onclick = copyPwHash;
-    pwEl.apply.onclick = applyPwHash;
+    pwEl.generate.onclick = () => withBusy(pwEl.generate, generatePwHash);
+    pwEl.copy.onclick = () => withBusy(pwEl.copy, copyPwHash);
+    pwEl.apply.onclick = () => withBusy(pwEl.apply, applyPwHash);
     pwEl.clear.onclick = () => {
         pwEl.plain.value = '';
         pwEl.confirm.value = '';
@@ -387,15 +566,22 @@
             elements.statusText.textContent = t(`status.${currentStatus}`);
         }
 
-        if (elements.logContent.textContent === t("toast.no_logs")) {
-            elements.logContent.textContent = t("logs.waiting");
-        }
+        // Re-translate the placeholder without throwing away loaded log lines.
+        if (logState === 'loaded') renderLog(logText);
+        else setLogPlaceholder(logState);
     });
 
+    // Translations arrive asynchronously, so the placeholder is filled in by the
+    // languageChanged handler rather than here; the markup carries the fallback.
     if (It) {
         refresh();
         setInterval(refresh, 5000);
     } else {
+        currentStatus = "unavailable";
         elements.statusText.textContent = t("toast.open_manager");
+        // Without a manager bridge these cannot run. Tabs, the log panel and the
+        // local-only password hash stay usable so the page is still testable.
+        ['btn-start', 'btn-stop', 'btn-save', 'btn-debug', 'btn-open-debug', 'btn-pw-apply']
+            .forEach(id => { const el = $(id); if (el) el.disabled = true; });
     }
 })();

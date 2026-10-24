@@ -3,17 +3,18 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
     <title>AdGuardHome Config</title>
     <link rel="stylesheet" href="./assets/style.css">
 </head>
 
 <body class="stopped">
 
-    <div id="toast-container" class="toast-wrap"></div>
+    <div id="toast-container" class="toast-wrap" aria-live="polite" aria-atomic="false"></div>
 
-    <div class="status-line" id="status-container">
-        <span class="dot"></span>
+    <div class="status-line" id="status-container" aria-live="polite">
+        <span class="dot" aria-hidden="true"></span>
 
         <span id="status-text" data-i18n="status.checking" class="status-text">
             Checking...
@@ -28,6 +29,7 @@
             v...
         </span>
 
+        <label class="sr-only" for="lang-switch" data-i18n="a11y.language">Language</label>
         <select id="lang-switch" class="input lang-select-sm">
             <option value="en">EN</option>
             <option value="zh">ZH</option>
@@ -35,38 +37,42 @@
     </div>
 
     <div class="btn-row">
-        <button class="btn btn-primary" id="btn-start" data-i18n="button.start">
+        <button type="button" class="btn btn-primary" id="btn-start" data-i18n="button.start">
             Start Core
         </button>
 
-        <button class="btn btn-danger" id="btn-stop" data-i18n="button.stop">
+        <button type="button" class="btn btn-danger" id="btn-stop" data-i18n="button.stop">
             Stop Core
         </button>
     </div>
 
-    <button class="btn btn-secondary btn-full" id="btn-link-panel" data-i18n="button.panel">
+    <button type="button" class="btn btn-secondary btn-full" id="btn-link-panel" data-i18n="button.panel">
         Open AdGuardHome Panel
     </button>
 
-    <div class="tab-btn-row">
-        <button class="tab-btn active" data-tab="settings" data-i18n="tab.settings">
+    <div class="tab-btn-row" role="tablist" data-i18n-aria-label="tab.list">
+        <button type="button" class="tab-btn active" id="tabbtn-settings" role="tab" aria-selected="true"
+            aria-controls="tab-settings" tabindex="0" data-tab="settings" data-i18n="tab.settings">
             Settings
         </button>
 
-        <button class="tab-btn" data-tab="logs" data-i18n="tab.logs">
+        <button type="button" class="tab-btn" id="tabbtn-logs" role="tab" aria-selected="false"
+            aria-controls="tab-logs" tabindex="-1" data-tab="logs" data-i18n="tab.logs">
             Logs
         </button>
 
-        <button class="tab-btn" data-tab="tools" data-i18n="tab.tools">
+        <button type="button" class="tab-btn" id="tabbtn-tools" role="tab" aria-selected="false"
+            aria-controls="tab-tools" tabindex="-1" data-tab="tools" data-i18n="tab.tools">
             Maintenance
         </button>
 
-        <button class="tab-btn" data-tab="password" data-i18n="tab.password">
+        <button type="button" class="tab-btn" id="tabbtn-password" role="tab" aria-selected="false"
+            aria-controls="tab-password" tabindex="-1" data-tab="password" data-i18n="tab.password">
             Password
         </button>
     </div>
 
-    <div id="tab-settings" class="tab-content active">
+    <div id="tab-settings" class="tab-content active" role="tabpanel" aria-labelledby="tabbtn-settings" tabindex="0">
 
         <div class="card">
 
@@ -76,85 +82,90 @@
 
             <div class="setting-row flex-between">
                 <div>
-                    <div data-i18n="settings.enable_iptables">
+                    <div id="lbl-enable_iptables" data-i18n="settings.enable_iptables">
                         Enable iptables
                     </div>
 
-                    <div data-i18n="settings.enable_iptables_desc" class="desc">
+                    <div id="desc-enable_iptables" data-i18n="settings.enable_iptables_desc" class="desc">
                         Automatically redirect DNS traffic at system level
                     </div>
                 </div>
 
-                <input type="checkbox" id="conf-enable_iptables" class="checkbox">
+                <input type="checkbox" id="conf-enable_iptables" class="checkbox"
+                    aria-labelledby="lbl-enable_iptables" aria-describedby="desc-enable_iptables">
             </div>
 
             <div class="setting-row flex-between">
                 <div>
-                    <div data-i18n="settings.block_ipv6">
+                    <div id="lbl-block_ipv6" data-i18n="settings.block_ipv6">
                         Block IPv6 DNS
                     </div>
 
-                    <div data-i18n="settings.block_ipv6_desc" class="desc">
+                    <div id="desc-block_ipv6" data-i18n="settings.block_ipv6_desc" class="desc">
                         Prevent DNS bypass via IPv6
                     </div>
                 </div>
 
-                <input type="checkbox" id="conf-block_ipv6_dns" class="checkbox">
+                <input type="checkbox" id="conf-block_ipv6_dns" class="checkbox"
+                    aria-labelledby="lbl-block_ipv6" aria-describedby="desc-block_ipv6">
             </div>
 
             <div class="field">
-                <label data-i18n="settings.redir_port">
+                <label for="conf-redir_port" data-i18n="settings.redir_port">
                     DNS Redirect Port
                 </label>
-                <input type="number" class="input" id="conf-redir_port" placeholder="5591">
+                <input type="number" class="input" id="conf-redir_port" placeholder="5591" min="1" max="65535"
+                    step="1" inputmode="numeric">
             </div>
 
             <div class="field">
-                <label data-i18n="settings.user">
+                <label for="conf-adg_user" data-i18n="settings.user">
                     Runtime User (UID)
                 </label>
-                <input type="text" class="input" id="conf-adg_user" placeholder="root">
+                <input type="text" class="input" id="conf-adg_user" placeholder="root" spellcheck="false"
+                    autocomplete="off" autocapitalize="off">
             </div>
 
             <div class="field">
-                <label data-i18n="settings.group">
+                <label for="conf-adg_group" data-i18n="settings.group">
                     Runtime Group (GID)
                 </label>
-                <input type="text" class="input" id="conf-adg_group" placeholder="net_raw">
+                <input type="text" class="input" id="conf-adg_group" placeholder="net_raw" spellcheck="false"
+                    autocomplete="off" autocapitalize="off">
             </div>
 
-            <button class="btn btn-primary btn-full" id="btn-save" data-i18n="button.save">
-                Save & Apply Configuration
+            <button type="button" class="btn btn-primary btn-full" id="btn-save" data-i18n="button.save">
+                Save &amp; Apply Configuration
             </button>
 
         </div>
     </div>
 
-    <div id="tab-logs" class="tab-content">
+    <div id="tab-logs" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-logs" tabindex="0">
 
         <div class="btn-row log-btn-row">
 
-            <button class="btn btn-secondary active btn-sm" data-log="bin" data-i18n="logs.core">
+            <button type="button" class="btn btn-secondary active btn-sm" data-log="bin" data-i18n="logs.core">
                 Core Log
             </button>
 
-            <button class="btn btn-secondary btn-sm" data-log="module" data-i18n="logs.history">
+            <button type="button" class="btn btn-secondary btn-sm" data-log="module" data-i18n="logs.history">
                 History
             </button>
 
-            <button class="btn btn-secondary btn-sm" id="btn-refresh-log" data-i18n="logs.refresh">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-refresh-log" data-i18n="logs.refresh">
                 Refresh
             </button>
 
         </div>
 
-        <div id="log-content" data-i18n="logs.waiting">
+        <div id="log-content">
             Waiting for logs...
         </div>
 
     </div>
 
-    <div id="tab-tools" class="tab-content">
+    <div id="tab-tools" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-tools" tabindex="0">
 
         <div class="card">
 
@@ -164,11 +175,11 @@
 
             <div class="btn-row">
 
-                <button class="btn btn-secondary" id="btn-debug" data-i18n="tools.generate_debug">
+                <button type="button" class="btn btn-secondary" id="btn-debug" data-i18n="tools.generate_debug">
                     Generate Debug Log
                 </button>
 
-                <button class="btn btn-secondary" id="btn-open-debug" data-i18n="tools.open_debug">
+                <button type="button" class="btn btn-secondary" id="btn-open-debug" data-i18n="tools.open_debug">
                     Open Debug Log
                 </button>
 
@@ -178,7 +189,7 @@
 
     </div>
 
-    <div id="tab-password" class="tab-content">
+    <div id="tab-password" class="tab-content" role="tabpanel" aria-labelledby="tabbtn-password" tabindex="0">
 
         <div class="card">
 
@@ -191,61 +202,65 @@
             </div>
 
             <div class="field">
-                <label data-i18n="password.user">
+                <label for="pw-user" data-i18n="password.user">
                     Username
                 </label>
-                <input type="text" class="input" id="pw-user" placeholder="root" spellcheck="false" autocomplete="off">
+                <input type="text" class="input" id="pw-user" placeholder="root" spellcheck="false"
+                    autocomplete="off" autocapitalize="off">
             </div>
 
             <div class="field">
-                <label data-i18n="password.plain">
+                <label for="pw-plain" data-i18n="password.plain">
                     New Password
                 </label>
-                <input type="password" class="input" id="pw-plain" data-i18n-placeholder="password.plain_ph" autocomplete="new-password" spellcheck="false">
+                <input type="password" class="input" id="pw-plain" data-i18n-placeholder="password.plain_ph"
+                    autocomplete="new-password" spellcheck="false">
             </div>
 
             <div class="field">
-                <label data-i18n="password.confirm">
+                <label for="pw-confirm" data-i18n="password.confirm">
                     Confirm Password
                 </label>
-                <input type="password" class="input" id="pw-confirm" data-i18n-placeholder="password.confirm_ph" autocomplete="new-password" spellcheck="false">
+                <input type="password" class="input" id="pw-confirm" data-i18n-placeholder="password.confirm_ph"
+                    autocomplete="new-password" spellcheck="false">
             </div>
 
             <div class="field">
-                <label data-i18n="password.cost">
+                <label for="pw-cost" data-i18n="password.cost">
                     Cost Factor
                 </label>
-                <input type="number" class="input" id="pw-cost" min="4" max="16" step="1" value="12">
+                <input type="number" class="input" id="pw-cost" min="4" max="16" step="1" value="12"
+                    inputmode="numeric">
             </div>
 
             <div class="btn-row">
-                <button class="btn btn-primary" id="btn-pw-generate" data-i18n="password.generate">
+                <button type="button" class="btn btn-primary" id="btn-pw-generate" data-i18n="password.generate">
                     Generate Hash
                 </button>
 
-                <button class="btn btn-secondary" id="btn-pw-clear" data-i18n="password.clear">
+                <button type="button" class="btn btn-secondary" id="btn-pw-clear" data-i18n="password.clear">
                     Clear
                 </button>
             </div>
 
             <div class="field">
-                <label data-i18n="password.result">
+                <label for="pw-result" data-i18n="password.result">
                     bcrypt Hash
                 </label>
                 <textarea class="input textarea-mono" id="pw-result" rows="2" readonly spellcheck="false"></textarea>
             </div>
 
             <div class="btn-row">
-                <button class="btn btn-secondary" id="btn-pw-copy" data-i18n="password.copy">
+                <button type="button" class="btn btn-secondary" id="btn-pw-copy" data-i18n="password.copy">
                     Copy
                 </button>
 
-                <button class="btn btn-secondary" id="btn-pw-apply" data-i18n="password.apply">
+                <button type="button" class="btn btn-secondary" id="btn-pw-apply" data-i18n="password.apply">
                     Write to Config
                 </button>
             </div>
 
-            <div class="desc" id="pw-status"></div>
+            <div class="desc" id="pw-status" aria-live="polite"></div>
 
             <div class="desc" data-i18n="password.hint">
                 The hash is computed locally in this page.

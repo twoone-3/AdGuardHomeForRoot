@@ -110,6 +110,20 @@ class I18n {
                     this.t(key);
             });
 
+        document
+            .querySelectorAll("[data-i18n-aria-label]")
+            .forEach((element) => {
+
+                const key =
+                    element.dataset
+                        .i18nAriaLabel;
+
+                element.setAttribute(
+                    "aria-label",
+                    this.t(key)
+                );
+            });
+
         document.title =
             this.t("app.title");
     }

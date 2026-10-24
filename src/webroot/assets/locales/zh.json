@@ -41,6 +41,15 @@
   "toast.generated": "已生成至:",
   "toast.opening_file": "尝试调用系统程序打开...",
   "toast.open_manager": "请从模块管理器打开",
+  "toast.exec_timeout": "操作超时",
+  "toast.cmd_failed": "命令执行失败，退出码",
+  "toast.invalid_field": "以下字段取值无效：",
+  "toast.debug_missing": "还没有调试日志，请先点击「生成调试日志」",
+  "toast.settings_read_fail": "无法读取 settings.conf",
+  "toast.open_fail": "无法调起浏览器，请手动访问：",
+
+  "a11y.language": "语言",
+  "tab.list": "功能分区",
 
   "tab.password": "密码计算",
 

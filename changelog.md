@@ -8,3 +8,5 @@
 - Check process liveness before the DNS listener check, clean up stale inotifyd instances in service.sh, pass KSU_MODULE when updating the module description via ksud, and stop the installer's pkill -f from matching itself (#85)
 - 文档拆分为中文 / 英文两个目录，统一以 docs/index.md 作为双语索引
 - Split the docs into Chinese / English directories with docs/index.md as the shared bilingual index
+- CI 不再上传 Actions 产物，改由单个任务直接打包并发布，安装包统一从 Releases 获取
+- CI no longer uploads Actions artifacts; a single job builds and publishes directly, so install packages come only from Releases

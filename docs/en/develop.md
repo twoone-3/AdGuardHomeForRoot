@@ -55,11 +55,13 @@ The resulting ZIP mirrors the layout of `src/`, with the AdGuardHome binary at `
 
 ## CI and releases
 
-Pushing a tag in the form `YYYYMMDD` triggers [`pack.yml`](../../.github/workflows/pack.yml):
+Pushing a tag in the form `YYYYMMDD` triggers [`pack.yml`](../../.github/workflows/pack.yml), which only publishes releases:
 
 1. Validates that the tag is an 8-digit date (`YYYYMMDD`)
-2. Builds both architectures via a matrix job calling `pack.sh arm64` / `pack.sh armv7`
-3. Creates a GitHub Release whose body comes from `changelog.md` and whose assets are the two ZIPs
+2. Runs `pack.sh all` to build both architectures
+3. Creates a GitHub Release whose body comes from `changelog.md` and whose assets are the two ZIPs in `cache/`
+
+The workflow can also be run manually, in which case it only verifies packaging and produces nothing downloadable. No build artifacts are uploaded to Actions: installable module ZIPs come only from Releases, use `pack.sh` for local builds.
 
 Before releasing, update:
 

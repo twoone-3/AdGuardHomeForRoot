@@ -55,11 +55,13 @@ Linux / macOS（需要 `curl` 或 `wget`、`tar`，以及 `zip`、`7z`/`7za`、`
 
 ## CI 与发版
 
-推送形如 `YYYYMMDD` 的 tag 会触发 [`pack.yml`](../../.github/workflows/pack.yml)：
+推送形如 `YYYYMMDD` 的 tag 会触发 [`pack.yml`](../../.github/workflows/pack.yml)，该 workflow 只负责发版：
 
 1. 校验 tag 必须为 8 位日期（`YYYYMMDD`）
-2. 以矩阵方式调用 `pack.sh arm64` / `pack.sh armv7` 构建两个架构的包
-3. 自动创建 GitHub Release，正文取自 `changelog.md`，附件为两个 ZIP
+2. 调用 `pack.sh all` 打包两个架构
+3. 创建 GitHub Release，正文取自 `changelog.md`，附件为 `cache/` 下的两个 ZIP
+
+workflow 也可手动触发，此时只验证打包、不产出可下载文件。Actions 页面不上传构建产物，可安装的模块包只从 Releases 获取，本地自测请用 `pack.sh`。
 
 发版前请同步更新以下文件：
 

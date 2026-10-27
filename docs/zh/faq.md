@@ -11,7 +11,7 @@
 - 确认已重启设备，并检查 AdGuardHome 进程是否在运行：
 
   ```shell
-  ps | grep AdGuardHome
+  ps -A | grep AdGuardHome
   ```
 
 - 若进程未运行，请查看[模块运行日志](troubleshooting.md#日志文件说明)。

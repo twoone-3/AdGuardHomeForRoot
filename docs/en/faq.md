@@ -11,7 +11,7 @@
 - Make sure you rebooted, and check whether the AdGuardHome process is running:
 
   ```shell
-  ps | grep AdGuardHome
+  ps -A | grep AdGuardHome
   ```
 
 - If the process is not running, check the [module run log](troubleshooting.md#log-files).

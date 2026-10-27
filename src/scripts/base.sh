@@ -28,7 +28,8 @@ function update_description() {
   module_id=$(grep "^id=" "$MOD_PATH/module.prop" | cut -d'=' -f2)
   # use ksu api if available, otherwise fallback to ap api, and finally fallback to sed
   if [ -x /data/adb/ksud ]; then
-    MODULE_ID="$module_id" /data/adb/ksud module config set override.description "$description"
+    # ksud reads the module id from KSU_MODULE; MODULE_ID is kept for older builds
+    KSU_MODULE="$module_id" MODULE_ID="$module_id" /data/adb/ksud module config set override.description "$description"
   elif [ -x /data/adb/apd ]; then
     MODULE_ID="$module_id" /data/adb/apd module config set override.description "$description"
   else

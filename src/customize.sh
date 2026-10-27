@@ -68,9 +68,36 @@ extract_all() {
   }
 }
 
+# Print the PIDs of running AdGuardHome processes. Must not fork per process:
+# `$(cat /proc/<pid>/comm)` over a device with a thousand processes takes
+# seconds, while the read builtin needs none.
+agh_pids() {
+  local p comm
+  for p in /proc/[0-9]*; do
+    comm=""
+    read -r comm <"$p/comm" 2>/dev/null
+    [ "$comm" = "AdGuardHome" ] || continue
+    echo "${p#/proc/}"
+  done
+}
+
 if [ -d "$AGH_DIR" ]; then
   info "- ⏹️ Found old version, stopping all AdGuardHome processes..." "- ⏹️ 发现旧版模块，正在停止所有 AdGuardHome 进程..."
-  pkill -f "AdGuardHome" || pkill -9 -f "AdGuardHome" 
+  # Match /proc/<pid>/comm, not `pkill -f AdGuardHome`: the installer's own
+  # command line contains ".../AdGuardHome/customize.sh", so -f kills itself.
+  for p in $(agh_pids); do
+    kill "$p" 2>/dev/null
+  done
+  # Give it a moment to shut down cleanly before replacing its binary.
+  waited=0
+  while [ -n "$(agh_pids)" ] && [ "$waited" -lt 5 ]; do
+    sleep 1
+    waited=$((waited + 1))
+  done
+  for p in $(agh_pids); do
+    kill -9 "$p" 2>/dev/null
+  done
+  rm -f "$PID_FILE"
   info "- 🔄 Do you want to keep the old configuration? (If not, it will be automatically backed up)" "- 🔄 是否保留原来的配置文件？（若不保留则自动备份）"
   info "- 🔊 (Volume Up = Yes, Volume Down = No, 30s no input = Yes)" "- 🔊 （音量上键 = 是, 音量下键 = 否，30秒无操作 = 是）"
   START_TIME=$(date +%s)

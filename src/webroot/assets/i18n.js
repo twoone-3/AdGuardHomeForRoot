@@ -17,6 +17,8 @@ class I18n {
                 browserLang.includes("cn")
             ) {
                 this.lang = "zh";
+            } else if (browserLang.startsWith("pt")) {
+                this.lang = "pt-BR";
             } else {
                 this.lang = "en";
             }

@@ -38,8 +38,7 @@ if [[ ! "$AGH_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   echo "Invalid AdGuardHome version in $LOCK_FILE: $AGH_VERSION" >&2
   exit 1
 fi
-AGH_CACHE="$CACHE_DIR/$AGH_VERSION"
-RELEASE_URL="https://github.com/AdguardTeam/AdGuardHome/releases/download/$AGH_VERSION"
+AGH_CACHE_DIR="$CACHE_DIR/$AGH_VERSION"
 
 if command -v sha256sum >/dev/null 2>&1; then
   HASH_TOOL=(sha256sum)
@@ -106,17 +105,15 @@ EOF
   esac
 }
 
-mkdir -p "$AGH_CACHE"
+mkdir -p "$AGH_CACHE_DIR"
 work_dir="$(mktemp -d)"
 trap 'rm -rf "$work_dir"' EXIT
-staging="$work_dir/module"
-mkdir -p "$staging/bin"
-cp -a "$SRC_DIR/." "$staging/"
 
-echo "Packing AdGuardHome $AGH_VERSION (using $ZIP_TOOL)..."
+echo "Downloading AdGuardHome $AGH_VERSION..."
 for arch in $ARCHS; do
   asset="AdGuardHome_linux_${arch}.tar.gz"
-  tgz="$AGH_CACHE/$asset"
+  url="https://github.com/AdguardTeam/AdGuardHome/releases/download/$AGH_VERSION/$asset"
+  tgz="$AGH_CACHE_DIR/$asset"
   digest="$(sed -n "s/^$arch=//p" "$LOCK_FILE")"
   if [[ ! "$digest" =~ ^[a-f0-9]{64}$ ]]; then
     echo "Invalid SHA-256 for $arch in $LOCK_FILE" >&2
@@ -124,25 +121,48 @@ for arch in $ARCHS; do
   fi
 
   if [ -f "$tgz" ] && archive_matches "$tgz" "$digest"; then
-    echo "Using verified cache: $tgz"
+    echo "File already exists in cache, skipping download: $tgz"
   else
-    echo "Downloading $RELEASE_URL/$asset..."
-    download_file "$RELEASE_URL/$asset" "$work_dir/$asset"
+    echo "Downloading $url..."
+    download_file "$url" "$work_dir/$asset"
     if ! archive_matches "$work_dir/$asset" "$digest"; then
       echo "SHA-256 mismatch for $asset" >&2
       exit 1
     fi
     mv -f "$work_dir/$asset" "$tgz"
+    echo "Download completed successfully."
   fi
+done
 
+echo "Extracting AdGuardHome..."
+for arch in $ARCHS; do
+  tgz="$AGH_CACHE_DIR/AdGuardHome_linux_${arch}.tar.gz"
   extract_dir="$work_dir/$arch"
   mkdir -p "$extract_dir"
+  echo "Extracting $tgz..."
   tar -xzf "$tgz" -C "$extract_dir"
-  cp -f "$extract_dir/AdGuardHome/AdGuardHome" "$staging/bin/AdGuardHome"
+  echo "Extraction completed successfully."
+done
+
+echo "Packing AdGuardHome (using $ZIP_TOOL)..."
+# Same layout as pack.ps1 / .github/workflows/pack.yml:
+# copy src/* to zip root, then place binary at bin/AdGuardHome
+staging="$work_dir/module"
+mkdir -p "$staging/bin"
+cp -a "$SRC_DIR/." "$staging/"
+for arch in $ARCHS; do
+  binary="$work_dir/$arch/AdGuardHome/AdGuardHome"
+  output="$CACHE_DIR/AdGuardHomeForRoot_${arch}.zip"
+
+  if [ ! -f "$binary" ]; then
+    echo "Binary not found: $binary" >&2
+    exit 1
+  fi
+
+  rm -f "$output"
+  cp -f "$binary" "$staging/bin/AdGuardHome"
   chmod +x "$staging/bin/AdGuardHome"
 
-  output="$CACHE_DIR/AdGuardHomeForRoot_${arch}.zip"
-  rm -f "$output"
   pack_zip "$staging" "$output"
   echo "Packed: $output"
 done

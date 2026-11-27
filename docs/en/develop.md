@@ -30,7 +30,7 @@ For developers. Regular users should start at the [documentation index](../index
 
 ## Local packaging
 
-`pack.ps1` (Windows) and `pack.sh` (Linux / macOS / CI) both use the tag and SHA-256 hashes pinned in `adguardhome.lock`. To update the core, update that file using the upstream release tag and its `checksums.txt`.
+`pack.ps1` (Windows) and `pack.sh` (Linux / macOS / CI) do the same thing: download and cache the AdGuardHome version pinned in `adguardhome.lock`, then pack it together with `src/` into a module ZIP. CI reuses `pack.sh`. To update the core, update `adguardhome.lock` using the upstream release tag and its `checksums.txt`.
 
 Windows (requires `tar` and 7-Zip on PATH or in `C:\Program Files\7-Zip`):
 
@@ -46,7 +46,13 @@ bash pack.sh arm64    # pack arm64 only
 bash pack.sh armv7    # pack armv7 only
 ```
 
-The packers reuse a verified archive from `cache/<core tag>/` or download it again if it is missing or fails verification. The resulting ZIP (`cache/AdGuardHomeForRoot_<arch>.zip`) mirrors `src/`, with the binary at `bin/AdGuardHome`.
+The script then automatically:
+
+1. Creates the `cache` directory if needed.
+2. Downloads and caches the pinned AdGuardHome release under `cache/<core tag>/` (skipped if the cached archive passes SHA-256 verification).
+3. Packs AdGuardHome and the contents of `src/` into a ZIP (`cache/AdGuardHomeForRoot_<arch>.zip`).
+
+The resulting ZIP mirrors the layout of `src/`, with the AdGuardHome binary at `bin/AdGuardHome`.
 
 On Linux, `bash tests/release-smoke.sh` runs offline packaging and upgrade checks (requires `zip`, `unzip`, and `sha256sum`).
 

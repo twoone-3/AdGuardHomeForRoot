@@ -23,7 +23,9 @@
 | 音量上键，或 30 秒内无操作 | **保留**原有的 `settings.conf` 与 `AdGuardHome.yaml` |
 | 音量下键 | **不保留**：原文件被就地备份为 `settings.conf.bak`、`AdGuardHome.yaml.bak`，随后写入新版本自带的配置 |
 
-> 注意：备份文件与原文件位于同一目录（`/data/adb/agh/` 与 `/data/adb/agh/bin/`），并非独立的备份目录。
+> 升级到 AdGuard Home v1.0.0 并选择保留配置时，安装器会先在 `/data/adb/agh/bin/` 保存一份 `AdGuardHome.yaml.pre-v1.0.0`，重复安装不会覆盖它。新核心首次启动会自动迁移旧配置至 schema 35。若要回退到使用 schema 34 的版本，请先停止模块并恢复这份备份。
+>
+> 备份文件与原文件位于同一目录（`/data/adb/agh/` 与 `/data/adb/agh/bin/`），并非独立的备份目录。
 
 ## 卸载
 

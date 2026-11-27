@@ -23,7 +23,9 @@ Install the new zip over the existing module in your root manager. Because the m
 | Volume Up, or no input within 30 seconds | **Keep** the existing `settings.conf` and `AdGuardHome.yaml` |
 | Volume Down | **Do not keep**: the old files are backed up in place as `settings.conf.bak` and `AdGuardHome.yaml.bak`, then the new defaults are installed |
 
-> Note: the backups sit next to the original files (`/data/adb/agh/` and `/data/adb/agh/bin/`), not in a separate backup directory.
+> When upgrading to AdGuard Home v1.0.0 and keeping your configuration, the installer saves a one-time `AdGuardHome.yaml.pre-v1.0.0` copy in `/data/adb/agh/bin/`. The new core migrates the YAML to schema 35 on startup. To return to a version that uses schema 34, stop the module and restore this copy first.
+>
+> The backups sit next to the original files (`/data/adb/agh/` and `/data/adb/agh/bin/`), not in a separate backup directory.
 
 ## Uninstall
 

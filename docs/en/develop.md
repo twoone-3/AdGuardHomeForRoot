@@ -21,6 +21,7 @@ For developers. Regular users should start at the [documentation index](../index
 │   └── META-INF/         # installer
 ├── docs/                 # user documentation (index.md is the entry, zh/ and en/ hold each language)
 ├── cache/                # packaging cache and output (git-ignored)
+├── adguardhome.lock      # AdGuardHome core tag and SHA-256 for both architectures
 ├── pack.ps1              # Windows packaging script
 ├── pack.sh               # Linux / macOS / CI packaging script
 ├── version.json          # version and update information
@@ -29,29 +30,25 @@ For developers. Regular users should start at the [documentation index](../index
 
 ## Local packaging
 
-`pack.ps1` (Windows) and `pack.sh` (Linux / macOS / CI) do the same thing: download and cache the latest AdGuardHome, then pack it together with `src/` into a module ZIP. CI reuses `pack.sh`.
+`pack.ps1` (Windows) and `pack.sh` (Linux / macOS / CI) both use the tag and SHA-256 hashes pinned in `adguardhome.lock`. To update the core, update that file using the upstream release tag and its `checksums.txt`.
 
-Windows (requires 7-Zip; the script calls `C:\Program Files\7-Zip\7z.exe`):
+Windows (requires `tar` and 7-Zip on PATH or in `C:\Program Files\7-Zip`):
 
 ```powershell
 .\pack.ps1
 ```
 
-Linux / macOS (requires `curl` or `wget`, `tar`, and one of `zip`, `7z`/`7za`, `python3`):
+Linux / macOS (requires `curl` or `wget`, `tar`, `sha256sum` or `shasum`, and one of `zip`/`7z`/`7za`/`python3`):
 
 ```shell
-./pack.sh          # pack arm64 + armv7
-./pack.sh arm64    # pack arm64 only
-./pack.sh armv7    # pack armv7 only
+bash pack.sh          # pack arm64 + armv7
+bash pack.sh arm64    # pack arm64 only
+bash pack.sh armv7    # pack armv7 only
 ```
 
-The script then automatically:
+The packers reuse a verified archive from `cache/<core tag>/` or download it again if it is missing or fails verification. The resulting ZIP (`cache/AdGuardHomeForRoot_<arch>.zip`) mirrors `src/`, with the binary at `bin/AdGuardHome`.
 
-1. Creates the `cache` directory if needed.
-2. Downloads and caches the latest AdGuardHome (skipped when the cache already has it).
-3. Packs AdGuardHome and the contents of `src/` into a ZIP (`cache/AdGuardHomeForRoot_<arch>.zip`).
-
-The resulting ZIP mirrors the layout of `src/`, with the AdGuardHome binary at `bin/AdGuardHome`. Because AdGuardHome is cached, repeated runs do not download it again.
+On Linux, `bash tests/release-smoke.sh` runs offline packaging and upgrade checks (requires `zip`, `unzip`, and `sha256sum`).
 
 ## CI and releases
 

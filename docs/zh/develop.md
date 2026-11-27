@@ -21,6 +21,7 @@
 │   └── META-INF/         # 安装器
 ├── docs/                 # 用户文档（index.md 为索引，zh/ 与 en/ 分别为中英文）
 ├── cache/                # 打包缓存与输出（已被 .gitignore 忽略）
+├── adguardhome.lock      # AdGuardHome 核心版本及两个架构的 SHA-256
 ├── pack.ps1              # Windows 打包脚本
 ├── pack.sh               # Linux / macOS / CI 打包脚本
 ├── version.json          # 版本与更新信息
@@ -29,29 +30,25 @@
 
 ## 本地打包
 
-`pack.ps1`（Windows）与 `pack.sh`（Linux / macOS / CI）逻辑一致：下载并缓存最新版 AdGuardHome，与 `src/` 一起打包成模块 ZIP，CI 打包同样复用 `pack.sh`。
+`pack.ps1`（Windows）与 `pack.sh`（Linux / macOS / CI）都按 `adguardhome.lock` 中固定的版本、SHA-256 打包。更新核心时，用对应上游 Release 的 tag 和 `checksums.txt` 同步更新该文件。
 
-Windows（需要已安装 7-Zip，脚本会调用 `C:\Program Files\7-Zip\7z.exe`）：
+Windows（需要 `tar`，以及位于 PATH 或 `C:\Program Files\7-Zip` 的 7-Zip）：
 
 ```powershell
 .\pack.ps1
 ```
 
-Linux / macOS（需要 `curl` 或 `wget`、`tar`，以及 `zip`、`7z`/`7za`、`python3` 三者之一）：
+Linux / macOS（需要 `curl` 或 `wget`、`tar`、`sha256sum` 或 `shasum`，以及 `zip`、`7z`/`7za`、`python3` 之一）：
 
 ```shell
-./pack.sh          # 打包 arm64 + armv7
-./pack.sh arm64    # 仅打包 arm64
-./pack.sh armv7    # 仅打包 armv7
+bash pack.sh          # 打包 arm64 + armv7
+bash pack.sh arm64    # 仅打包 arm64
+bash pack.sh armv7    # 仅打包 armv7
 ```
 
-运行脚本后会自动完成：
+脚本从 `cache/<核心版本>/` 复用校验通过的压缩包；缓存缺失或校验失败时重新下载。产物 `cache/AdGuardHomeForRoot_<arch>.zip` 的目录结构与 `src/` 一致，核心位于 `bin/AdGuardHome`。
 
-1. 创建 `cache` 目录（如果尚未存在）。
-2. 下载并缓存最新版本的 AdGuardHome（仅在 `cache` 目录中未找到缓存时执行下载）。
-3. 将 AdGuardHome 与 `src/` 的内容打包成 ZIP（输出至 `cache/AdGuardHomeForRoot_<arch>.zip`）。
-
-产物 ZIP 的结构与 `src/` 一致，AdGuardHome 二进制位于 `bin/AdGuardHome`。脚本具有缓存机制：如果 `cache` 目录中已存在 AdGuardHome 的缓存版本，则不会重复下载，从而节省时间和带宽。
+在 Linux 上可运行 `bash tests/release-smoke.sh` 离线检查打包及升级流程（需要 `zip`、`unzip` 和 `sha256sum`）。
 
 ## CI 与发版
 

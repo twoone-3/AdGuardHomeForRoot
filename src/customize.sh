@@ -35,6 +35,15 @@ unzip -o "$ZIPFILE" "webroot/*" -d "$MODPATH" >/dev/null 2>&1
 
 extract_keep_config() {
   info "- 🌈 Keeping old configuration files..." "- 🌈 保留原来的配置文件..."
+  # v1.0.0 migrates the YAML in place. Save a rollback copy once.
+  local config="$BIN_DIR/AdGuardHome.yaml"
+  local backup="$config.pre-v1.0.0"
+  if [ -f "$config" ] && [ ! -e "$backup" ]; then
+    cp -p "$config" "$backup.tmp" && mv -f "$backup.tmp" "$backup" || {
+      rm -f "$backup.tmp"
+      error "- ❌ Failed to back up AdGuardHome.yaml!" "- ❌ 备份 AdGuardHome.yaml 失败！"
+    }
+  fi
   info "- 📜 Extracting script files..." "- 📜 正在解压脚本文件..."
   unzip -o "$ZIPFILE" "scripts/*" -d $AGH_DIR >/dev/null 2>&1 || {
     error "- ❌ Failed to extract scripts!" "- ❌ 解压脚本文件失败！"

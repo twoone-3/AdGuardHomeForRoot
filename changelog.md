@@ -10,5 +10,5 @@
 - Split the docs into Chinese / English directories with docs/index.md as the shared bilingual index
 - CI 不再上传 Actions 产物，改由单个任务直接打包并发布，安装包统一从 Releases 获取
 - CI no longer uploads Actions artifacts; a single job builds and publishes directly, so install packages come only from Releases
-- 更新核心至 [AdGuard Home v1.0.0](https://github.com/AdguardTeam/AdGuardHome/releases/tag/v1.0.0)。arm64 和 armv7 构建使用固定的版本和 SHA-256；升级时保留用户配置，并在迁移至 schema 35 前备份 YAML 以便回退。
-- Updated the core to [AdGuard Home v1.0.0](https://github.com/AdguardTeam/AdGuardHome/releases/tag/v1.0.0). Both arm64 and armv7 builds pin the release and SHA-256 hashes. Upgrades retain user settings and back up the YAML before migrating to schema 35.
+- 更新核心至 [AdGuard Home v1.0.0](https://github.com/AdguardTeam/AdGuardHome/releases/tag/v1.0.0)。
+- Updated the core to [AdGuard Home v1.0.0](https://github.com/AdguardTeam/AdGuardHome/releases/tag/v1.0.0).

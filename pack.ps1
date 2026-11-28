@@ -1,108 +1,95 @@
-$ErrorActionPreference = "Stop"
-
 # 定义下载 URL 和路径变量
 $CacheDir = "$PSScriptRoot\cache"
-$Lock = Get-Content -Raw -LiteralPath "$PSScriptRoot\adguardhome.lock" | ConvertFrom-StringData
-$Version = $Lock.version
-if ($Version -cnotmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
-  throw "Invalid AdGuardHome version in adguardhome.lock: $Version"
-}
-$CoreCache = "$CacheDir\$Version"
-$ReleaseUrl = "https://github.com/AdguardTeam/AdGuardHome/releases/download/$Version"
-$Archs = "arm64", "armv7"
-
-function Get-ArchiveHash([string]$Path) {
-  $Sha256 = [Security.Cryptography.SHA256]::Create()
-  $Stream = $null
-  try {
-    $Stream = [IO.File]::OpenRead($Path)
-    [BitConverter]::ToString($Sha256.ComputeHash($Stream)).Replace("-", "")
-  }
-  finally {
-    if ($Stream) {
-      $Stream.Dispose()
-    }
-    $Sha256.Dispose()
-  }
+$UrlWitchCachePath = @{
+  "https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_arm64.tar.gz" = "$CacheDir\AdGuardHome_linux_arm64.tar.gz"
+  "https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_armv7.tar.gz" = "$CacheDir\AdGuardHome_linux_armv7.tar.gz"
 }
 
 # 创建缓存目录
-if (-Not (Test-Path -LiteralPath $CoreCache)) {
+if (-Not (Test-Path -Path $CacheDir)) {
   Write-Host "Creating cache directory..."
-  New-Item -Path $CoreCache -ItemType Directory -Force | Out-Null
+  New-Item -Path $CacheDir -ItemType Directory
 }
-$WorkName = [IO.Path]::GetRandomFileName()
-$WorkDir = "$CoreCache\$WorkName"
-New-Item -Path $WorkDir -ItemType Directory | Out-Null
-Push-Location -LiteralPath $CoreCache
-try {
-  # 下载文件，缓存校验通过时不再下载
-  Write-Host "Downloading AdGuardHome $Version..."
-  foreach ($Arch in $Archs) {
-    $Asset = "AdGuardHome_linux_${Arch}.tar.gz"
-    $url = "$ReleaseUrl/$Asset"
-    $CachePath = "$CoreCache\$Asset"
-    $Digest = $Lock[$Arch]
-    if ($Digest -cnotmatch '^[a-f0-9]{64}$') {
-      throw "Invalid SHA-256 for $Arch in adguardhome.lock"
-    }
 
-    if ((Test-Path -LiteralPath $CachePath -PathType Leaf) -and (Get-ArchiveHash $CachePath) -eq $Digest) {
-      Write-Host "File already exists in cache, skipping download: $CachePath"
-    }
-    else {
-      $Download = "$WorkDir\$Asset"
-      Write-Host "Downloading $url..."
-      Invoke-WebRequest -UseBasicParsing -Uri $url -OutFile $Download
-      if ((Get-ArchiveHash $Download) -ne $Digest) {
-        throw "SHA-256 mismatch for $Asset"
-      }
-      Move-Item -LiteralPath $Download -Destination $CachePath -Force
+# 下载文件，有缓存时不再下载
+Write-Host "Downloading AdGuardHome..."
+foreach ($url in $UrlWitchCachePath.Keys) {
+  $CachePath = $UrlWitchCachePath[$url]
+  if (-Not (Test-Path -Path $CachePath)) {
+    Write-Host "Downloading $url..."
+    Invoke-WebRequest -Uri $url -OutFile $CachePath
+    if ($?) {
       Write-Host "Download completed successfully."
     }
+    else {
+      Write-Host "Download failed. Exiting..."
+      exit 1
+    }
   }
-
-  # 使用 tar 解压文件
-  Write-Host "Extracting AdGuardHome..."
-  foreach ($Arch in $Archs) {
-    $Asset = "AdGuardHome_linux_${Arch}.tar.gz"
-    $ExtractDir = "$WorkDir\$Arch"
-    New-Item -Path $ExtractDir -ItemType Directory | Out-Null
-    Write-Host "Extracting $CoreCache\$Asset..."
-    # 使用相对路径，兼容 Windows 和 GNU tar
-    tar -xzf $Asset -C "$WorkName/$Arch"
-    if ($LASTEXITCODE -ne 0) {
-      throw "Extraction failed: $CoreCache\$Asset"
-    }
-    Write-Host "Extraction completed successfully."
-  }
-
-  # 设置项目根目录
-  $ProjectRoot = "$PSScriptRoot\src"
-  $env:PATH += ";C:\Program Files\7-Zip"
-  $Staging = "$WorkDir\module"
-  Copy-Item -LiteralPath $ProjectRoot -Destination $Staging -Recurse
-  New-Item -Path "$Staging\bin" -ItemType Directory -Force | Out-Null
-
-  # 给项目打包，使用 7-Zip 压缩 zip
-  Write-Host "Packing AdGuardHome..."
-  foreach ($Arch in $Archs) {
-    $OutputPath = "$CacheDir\AdGuardHomeForRoot_${Arch}.zip"
-    if (Test-Path -LiteralPath $OutputPath) {
-      Remove-Item -LiteralPath $OutputPath
-    }
-
-    Copy-Item -LiteralPath "$WorkDir\$Arch\AdGuardHome\AdGuardHome" -Destination "$Staging\bin\AdGuardHome" -Force
-    7z a -tzip $OutputPath "$Staging\*"
-    if ($LASTEXITCODE -ne 0) {
-      throw "Packaging failed: $OutputPath"
-    }
-    Write-Host "Packed: $OutputPath"
+  else {
+    Write-Host "File already exists in cache. Skipping download."
   }
 }
-finally {
-  Pop-Location
-  Remove-Item -LiteralPath $WorkDir -Recurse -Force
+
+# 使用 tar 解压文件
+Write-Host "Extracting AdGuardHome..."
+foreach ($url in $UrlWitchCachePath.Keys) {
+  $CachePath = $UrlWitchCachePath[$url]
+  if ($CachePath -match 'AdGuardHome_linux_(arm64|armv7)\.tar\.gz$') {
+    $ExtractDir = "./cache/" + $matches[1]
+  }
+  else {
+    throw "Invalid file path: $CachePath"
+  }
+  if (-Not (Test-Path -Path $ExtractDir)) {
+    New-Item -Path $ExtractDir -ItemType Directory
+    Write-Host "Extracting $CachePath..."
+    tar -xzf $CachePath -C $ExtractDir
+    if ($?) {
+      Write-Host "Extraction completed successfully."
+    }
+    else {
+      Write-Host "Extraction failed"
+      exit 1
+    }
+  }
 }
+
+# 给项目打包，使用 7-Zip 压缩 zip
+Write-Host "Packing AdGuardHome..."
+$OutputPathArm64 = "$CacheDir\AdGuardHomeForRoot_arm64.zip"
+$OutputPathArmv7 = "$CacheDir\AdGuardHomeForRoot_armv7.zip"
+if (Test-Path -Path $OutputPathArm64) {
+  Remove-Item -Path $OutputPathArm64
+}
+if (Test-Path -Path $OutputPathArmv7) {
+  Remove-Item -Path $OutputPathArmv7
+}
+
+# 设置项目根目录
+$ProjectRoot = "$PSScriptRoot\src"
+$env:PATH += ";C:\Program Files\7-Zip"
+
+# pack arm64
+7z a -tzip $OutputPathArm64 "$ProjectRoot\*.sh"
+7z a -tzip $OutputPathArm64 "$ProjectRoot\settings.conf"
+7z a -tzip $OutputPathArm64 "$ProjectRoot\module.prop"
+7z a -tzip $OutputPathArm64 "$ProjectRoot\META-INF"
+7z a -tzip $OutputPathArm64 "$ProjectRoot\scripts"
+7z a -tzip $OutputPathArm64 "$ProjectRoot\webroot"
+7z a -tzip $OutputPathArm64 "$ProjectRoot\bin\"
+7z a -tzip $OutputPathArm64 "$CacheDir\arm64\AdGuardHome\AdGuardHome"
+7z rn $OutputPathArm64 "AdGuardHome" "bin/AdGuardHome"
+
+# pack armv7
+7z a -tzip $OutputPathArmv7 "$ProjectRoot\*.sh"
+7z a -tzip $OutputPathArmv7 "$ProjectRoot\settings.conf"
+7z a -tzip $OutputPathArmv7 "$ProjectRoot\module.prop"
+7z a -tzip $OutputPathArmv7 "$ProjectRoot\META-INF"
+7z a -tzip $OutputPathArmv7 "$ProjectRoot\scripts"
+7z a -tzip $OutputPathArmv7 "$ProjectRoot\webroot"
+7z a -tzip $OutputPathArmv7 "$ProjectRoot\bin\"
+7z a -tzip $OutputPathArmv7 "$CacheDir\armv7\AdGuardHome\AdGuardHome"
+7z rn $OutputPathArmv7 "AdGuardHome" "bin/AdGuardHome"
 
 Write-Host "Packing completed successfully."

@@ -7,9 +7,9 @@
 #   cache/AdGuardHomeForRoot_armv7.zip
 #
 # Usage:
-#   bash pack.sh [arm64|armv7|all]   # default: all
+#   ./pack.sh [arm64|armv7|all]   # default: all
 #
-# Requirements: curl (or wget), tar, sha256sum (or shasum), and zip, 7z/7za, or python3
+# Requirements: curl (or wget), tar, and one of: zip, 7z/7za, python3
 
 set -euo pipefail
 
@@ -32,25 +32,12 @@ case "$ARCHS_REQUESTED" in
     ;;
 esac
 
-LOCK_FILE="$SCRIPT_DIR/adguardhome.lock"
-AGH_VERSION="$(sed -n 's/^version=//p' "$LOCK_FILE")"
-if [[ ! "$AGH_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "Invalid AdGuardHome version in $LOCK_FILE: $AGH_VERSION" >&2
-  exit 1
-fi
-AGH_CACHE_DIR="$CACHE_DIR/$AGH_VERSION"
-
-if command -v sha256sum >/dev/null 2>&1; then
-  HASH_TOOL=(sha256sum)
-elif command -v shasum >/dev/null 2>&1; then
-  HASH_TOOL=(shasum -a 256)
-else
-  echo "Missing dependency: sha256sum or shasum" >&2
-  exit 1
-fi
-
-archive_matches() {
-  printf '%s  %s\n' "$2" "$1" | "${HASH_TOOL[@]}" -c --status -
+get_url() {
+  case "$1" in
+    arm64) echo "https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_arm64.tar.gz" ;;
+    armv7) echo "https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_armv7.tar.gz" ;;
+    *) echo "Unsupported arch: $1" >&2; exit 1 ;;
+  esac
 }
 
 download_file() {
@@ -105,53 +92,39 @@ EOF
   esac
 }
 
-mkdir -p "$AGH_CACHE_DIR"
-work_dir="$(mktemp -d)"
-trap 'rm -rf "$work_dir"' EXIT
+mkdir -p "$CACHE_DIR"
 
-echo "Downloading AdGuardHome $AGH_VERSION..."
+echo "Downloading AdGuardHome..."
 for arch in $ARCHS; do
-  asset="AdGuardHome_linux_${arch}.tar.gz"
-  url="https://github.com/AdguardTeam/AdGuardHome/releases/download/$AGH_VERSION/$asset"
-  tgz="$AGH_CACHE_DIR/$asset"
-  digest="$(sed -n "s/^$arch=//p" "$LOCK_FILE")"
-  if [[ ! "$digest" =~ ^[a-f0-9]{64}$ ]]; then
-    echo "Invalid SHA-256 for $arch in $LOCK_FILE" >&2
-    exit 1
-  fi
-
-  if [ -f "$tgz" ] && archive_matches "$tgz" "$digest"; then
-    echo "File already exists in cache, skipping download: $tgz"
-  else
+  url="$(get_url "$arch")"
+  tgz="$CACHE_DIR/AdGuardHome_linux_${arch}.tar.gz"
+  if [ ! -f "$tgz" ]; then
     echo "Downloading $url..."
-    download_file "$url" "$work_dir/$asset"
-    if ! archive_matches "$work_dir/$asset" "$digest"; then
-      echo "SHA-256 mismatch for $asset" >&2
-      exit 1
-    fi
-    mv -f "$work_dir/$asset" "$tgz"
+    download_file "$url" "$tgz"
     echo "Download completed successfully."
+  else
+    echo "File already exists in cache, skipping download: $tgz"
   fi
 done
 
 echo "Extracting AdGuardHome..."
 for arch in $ARCHS; do
-  tgz="$AGH_CACHE_DIR/AdGuardHome_linux_${arch}.tar.gz"
-  extract_dir="$work_dir/$arch"
-  mkdir -p "$extract_dir"
-  echo "Extracting $tgz..."
-  tar -xzf "$tgz" -C "$extract_dir"
-  echo "Extraction completed successfully."
+  tgz="$CACHE_DIR/AdGuardHome_linux_${arch}.tar.gz"
+  extract_dir="$CACHE_DIR/$arch"
+  binary="$extract_dir/AdGuardHome/AdGuardHome"
+  if [ ! -f "$binary" ]; then
+    mkdir -p "$extract_dir"
+    echo "Extracting $tgz..."
+    tar -xzf "$tgz" -C "$extract_dir"
+    echo "Extraction completed successfully."
+  else
+    echo "Binary already extracted, skipping: $binary"
+  fi
 done
 
 echo "Packing AdGuardHome (using $ZIP_TOOL)..."
-# Same layout as pack.ps1 / .github/workflows/pack.yml:
-# copy src/* to zip root, then place binary at bin/AdGuardHome
-staging="$work_dir/module"
-mkdir -p "$staging/bin"
-cp -a "$SRC_DIR/." "$staging/"
 for arch in $ARCHS; do
-  binary="$work_dir/$arch/AdGuardHome/AdGuardHome"
+  binary="$CACHE_DIR/$arch/AdGuardHome/AdGuardHome"
   output="$CACHE_DIR/AdGuardHomeForRoot_${arch}.zip"
 
   if [ ! -f "$binary" ]; then
@@ -160,10 +133,23 @@ for arch in $ARCHS; do
   fi
 
   rm -f "$output"
+
+  staging="$(mktemp -d)"
+  # 双引号让 $staging 在设置 trap 时立即展开，避免 EXIT 时变量已变
+  trap "rm -rf $staging" EXIT
+
+  # Same layout as pack.ps1 / .github/workflows/pack.yml:
+  # copy src/* to zip root, then place binary at bin/AdGuardHome
+  cp -a "$SRC_DIR/." "$staging/"
+  mkdir -p "$staging/bin"
   cp -f "$binary" "$staging/bin/AdGuardHome"
   chmod +x "$staging/bin/AdGuardHome"
 
   pack_zip "$staging" "$output"
+
+  rm -rf "$staging"
+  trap - EXIT
+
   echo "Packed: $output"
 done
 

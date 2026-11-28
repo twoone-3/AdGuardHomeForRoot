@@ -54,8 +54,6 @@ bash pack.sh armv7    # 仅打包 armv7
 
 产物 ZIP 的结构与 `src/` 一致，AdGuardHome 二进制位于 `bin/AdGuardHome`。
 
-在 Linux 上可运行 `bash tests/release-smoke.sh` 离线检查打包及升级流程（需要 `zip`、`unzip` 和 `sha256sum`）。
-
 ## CI 与发版
 
 推送形如 `YYYYMMDD` 的 tag 会触发 [`pack.yml`](../../.github/workflows/pack.yml)，该 workflow 只负责发版：

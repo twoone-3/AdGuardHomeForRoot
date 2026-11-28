@@ -54,8 +54,6 @@ The script then automatically:
 
 The resulting ZIP mirrors the layout of `src/`, with the AdGuardHome binary at `bin/AdGuardHome`.
 
-On Linux, `bash tests/release-smoke.sh` runs offline packaging and upgrade checks (requires `zip`, `unzip`, and `sha256sum`).
-
 ## CI and releases
 
 Pushing a tag in the form `YYYYMMDD` triggers [`pack.yml`](../../.github/workflows/pack.yml), which only publishes releases:
